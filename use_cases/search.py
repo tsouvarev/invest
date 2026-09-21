@@ -1,18 +1,17 @@
 import locale
-from collections import defaultdict
-from collections.abc import AsyncIterator, Iterator
+from collections.abc import Iterator
 from datetime import date
 from enum import StrEnum, auto
 from itertools import count
 
-from asyncstdlib import list as alist
-from funcy.seqs import concat
+from funcy.colls import walk_values
+from funcy.seqs import group_by
 from httpxyz import AsyncClient
-from pydantic import BaseModel
 from whatever import that
 
-from .db import Db, Prediction, Ticker, load_from_db
-from .show import get_infos
+from use_cases.tickers.db import load_base_db
+
+from .tickers import Db, Prediction, PredictionsUpdateMode, Ticker, load_from_db
 from .utils import indicate_work, select_many_from_response
 
 
@@ -28,16 +27,6 @@ class SearchField(StrEnum):
     NOMINAL = auto()
     MATURITY_DATE = auto()
     SECTOR = auto()
-
-
-class Info(BaseModel):
-    isin: str
-    grade: str
-    coupon: float
-    quote: str
-    nominal: str
-    maturity_date: str
-    sector: str
 
 
 SEARCH_CONFIG = {
@@ -157,26 +146,30 @@ async def search_tickers(
     min_rating: int,
     exclude_duplicates: bool,
     show_better_duplicates: bool,
-) -> list[Info]:
+) -> list[Ticker]:
     isins = await _collect_isins(client, years, min_rating)
-    db = await load_from_db(client, isins=concat(isins, used_isins))
 
-    isins = list(_drop_used_tickers(db, isins, used_isins))
+    new_tickers = await load_base_db(client, isins=isins)
 
     if exclude_duplicates:
-        isins = list(_drop_duplicated_companies(db, isins))
+        _drop_duplicated_companies(new_tickers)
 
-    infos = await alist(get_infos(client, isins=list(isins)))
-    infos = list(_drop_bad_predictions(infos))
-    infos = list(_drop_bad_quotes(infos))
+    _drop_blacklisted_companies_and_isins(new_tickers, blacklist)
+
+    new_tickers = await load_from_db(client, isins=new_tickers, skip_empty=True)
+
+    _drop_bad_predictions(new_tickers)
+    _drop_bad_quotes(new_tickers)
 
     if show_better_duplicates:
-        infos = await alist(_drop_worse_duplicates(client, db, infos, used_isins))
+        used_tickers = await load_from_db(
+            client, isins=used_isins, update_predictions=PredictionsUpdateMode.SKIP
+        )
+        _drop_worse_duplicates(new_tickers, used_tickers)
 
-    infos = list(_drop_too_little_yield(infos, min_yield))
-    infos = list(_drop_blacklisted_companies_and_isins(infos, db, blacklist))
+    _drop_too_little_yield(new_tickers, min_yield)
 
-    return sorted(infos, key=that.coupon, reverse=True)
+    return sorted(new_tickers.values(), key=that.coupon, reverse=True)
 
 
 async def _collect_isins(
@@ -211,79 +204,50 @@ async def _collect_isins(
     return isins
 
 
-def _parse_search_page(response, selectors) -> Iterator[Info]:
+def _parse_search_page(response, selectors) -> Iterator[str]:
     search_infos = select_many_from_response(response, [selectors["url"]])
     for el in search_infos:
         yield el[0].attrib["href"].rsplit("/")[-2]
 
 
-def _drop_used_tickers(
-    db: Db, isins: list[str], used_isins: list[str]
-) -> Iterator[str]:
-    for isin in isins:
-        if isin in used_isins or not db.get(isin):
-            continue
-        yield isin
+def _drop_bad_predictions(db: Db) -> None:
+    for isin, ticker in list(db.items()):
+        if not ticker.prediction or ticker.prediction == Prediction.WITHDRAWN:
+            del db[isin]
 
 
-def _drop_bad_predictions(infos: list[Info]) -> Iterator[Info]:
-    for info in infos:
-        if info.prediction and info.prediction != Prediction.WITHDRAWN:
-            yield info
+def _drop_bad_quotes(db: Db) -> None:
+    for isin, ticker in list(db.items()):
+        if ticker.quote < 70:
+            del db[isin]
 
 
-def _drop_bad_quotes(infos: list[Info]) -> Iterator[Info]:
-    for info in infos:
-        if info.quote > 70:
-            yield info
-
-
-def _drop_duplicated_companies(db: Db, isins: list[str]) -> Iterator[str]:
+def _drop_duplicated_companies(db: Db) -> None:
     seen_companies = set()
-    for isin in isins:
-        ticker = db[isin]
-
+    for isin, ticker in list(db.items()):
         if ticker._company in seen_companies:
-            continue
-
+            del db[isin]
         seen_companies.add(ticker._company)
-        yield isin
 
 
-async def _drop_worse_duplicates(
-    client: AsyncClient, db: Db, infos: list[Info], used_isins: list[str]
-) -> AsyncIterator[Info]:
-    used_infos = await alist(get_infos(client, isins=used_isins))
+def _drop_worse_duplicates(new_db: Db, used_db: Db) -> None:
+    current_coupons = walk_values(
+        lambda tickers: max(map(that.coupon, tickers)),
+        group_by(that._company, used_db.values()),
+    )
 
-    current_coupons = defaultdict(int)
-    for info in used_infos:
-        ticker = db[info.isin]
-        current_coupons[ticker._company] = max(
-            current_coupons[ticker._company], info.coupon or 0
-        )
-
-    for info in infos:
-        ticker = db[info.isin]
-        if info.coupon > current_coupons.get(ticker._company, 0):
-            yield info
+    for isin, ticker in list(new_db.items()):
+        if ticker.coupon <= current_coupons.get(ticker._company, 0):
+            del new_db[isin]
 
 
-def _drop_too_little_yield(infos: list[Info], min_yield: float) -> Iterator[Info]:
-    for info in infos:
-        if info.coupon > min_yield:
-            yield info
+def _drop_too_little_yield(db: Db, min_yield: float) -> None:
+    for isin, ticker in list(db.items()):
+        if ticker.coupon <= min_yield:
+            del db[isin]
 
 
-def _drop_blacklisted_companies_and_isins(
-    infos: list[Info], db: dict[str, Ticker], blacklist: list[str]
-) -> Iterator[Info]:
-    for info in infos:
-        ticker = db.get(info.isin)
-
-        if not ticker:
-            continue
-
+def _drop_blacklisted_companies_and_isins(db: Db, blacklist: list[str]) -> None:
+    for isin, ticker in list(db.items()):
         if ticker._company in blacklist or ticker._isin in blacklist:
-            continue
-
-        yield info
+            del db[isin]

@@ -3,21 +3,10 @@ from pathlib import Path
 from typing import Annotated
 
 from async_typer import AsyncTyper, Option
-from asyncstdlib import list as alist
 from tabulate import tabulate
 
-from use_cases.db import Grade, load_from_db
 from use_cases.search import search_tickers
-from use_cases.sheets import load_tickers_from_sheet
-from use_cases.show import (
-    OUTPUT_VALUE_MAPPINGS as show_mappings,
-)
-from use_cases.show import (
-    Info,
-    ShowField,
-    find_duplicates,
-    get_infos,
-)
+from use_cases.sheets import load_isins_from_sheet
 from use_cases.snapshots import (
     Snapshot,
     get_last_snapshot,
@@ -25,10 +14,19 @@ from use_cases.snapshots import (
     print_diff,
     write_snapshot,
 )
+from use_cases.tickers import (
+    OUTPUT_VALUE_MAPPINGS,
+    Db,
+    Grade,
+    PredictionsUpdateMode,
+    ShowField,
+    find_duplicates,
+    load_from_db,
+)
+from use_cases.tickers.db import load_base_db
 from use_cases.utils import (
     async_client,
     dump_model_list,
-    project,
     read_file_or_none,
     remap_values,
 )
@@ -54,9 +52,8 @@ async def show(
     isin: list[str] | None = None,
     sheet: Annotated[str | None, Option(envvar="SHEET_ID")] = None,
     diff: bool = True,
-    update_predictions: bool = False,
-    # write: bool = False,
-    field: list[ShowField] | None = None,
+    update_predictions: PredictionsUpdateMode = PredictionsUpdateMode.OUTDATED,
+    fields: list[ShowField] = ShowField.default,
     token: Annotated[Path | None, Option(envvar="TOKEN_PATH")] = None,
     column: Annotated[str | None, Option(envvar="SHEET_COLUMN")] = None,
 ) -> None:
@@ -65,34 +62,34 @@ async def show(
     elif isin:
         isins = isin
     elif sheet:
-        isins = load_tickers_from_sheet(token, sheet, column)
+        isins = load_isins_from_sheet(token, sheet, column)
     else:
         msg = "no source"
         raise ValueError(msg)
 
     async with async_client:
-        data: list[Info] = await alist(
-            get_infos(
-                async_client,
-                isins=isins,
-                update_predictions=update_predictions,
-                skip_predictions=False,
-            )
+        data: Db = await load_from_db(
+            async_client,
+            isins=isins,
+            update_predictions=update_predictions,
         )
+        tickers = list(data.values())
 
         if not data:
             print("No data")
             return
 
-        output_data = [remap_values(v, show_mappings) for v in dump_model_list(data)]
-        output_data = project(output_data, field) if field else output_data
-        print(tabulate(output_data, headers="keys", tablefmt="tsv"))
+        output = [
+            remap_values(v, OUTPUT_VALUE_MAPPINGS)
+            for v in dump_model_list(tickers, fields)
+        ]
+        print(tabulate(output, headers="keys", tablefmt="tsv"))
 
         if diff:
             last_snapshot = get_last_snapshot()
-            current_snapshot = Snapshot.from_info(data)
-            await print_diff(async_client, last_snapshot, current_snapshot)
-            write_snapshot(data)
+            current_snapshot = Snapshot.from_ticker(tickers)
+            print_diff(data, last_snapshot, current_snapshot)
+            write_snapshot(tickers)
 
 
 @bonds_app.command()
@@ -108,19 +105,21 @@ async def duplicates(
     elif isin:
         isins = isin
     elif sheet:
-        isins = load_tickers_from_sheet(token, sheet, column)
+        isins = load_isins_from_sheet(token, sheet, column)
     else:
         msg = "no source"
         raise ValueError(msg)
 
     async with async_client:
-        data = await alist(find_duplicates(async_client, isins=isins))
+        data = await find_duplicates(async_client, isins=isins)
 
         if not data:
             print("No data")
             return
 
-        output_data = [remap_values(v, show_mappings) for v in dump_model_list(data)]
+        output_data = [
+            remap_values(v, OUTPUT_VALUE_MAPPINGS) for v in dump_model_list(data)
+        ]
         print(tabulate(output_data, headers="keys", tablefmt="tsv"))
 
 
@@ -135,13 +134,14 @@ async def search(
     min_rating: Grade = Grade.BB,
     exclude_duplicates: bool = True,
     show_better_duplicates: bool = True,
+    fields: list[ShowField] = ShowField.default,
     token: Annotated[Path | None, Option(envvar="TOKEN_PATH")] = None,
     column: Annotated[str | None, Option(envvar="SHEET_COLUMN")] = None,
 ) -> None:
     if used:
         used_isins = read_file_or_none(used)
     elif sheet:
-        used_isins = load_tickers_from_sheet(token, sheet, column)
+        used_isins = load_isins_from_sheet(token, sheet, column)
     else:
         msg = "no source"
         raise ValueError(msg)
@@ -167,7 +167,10 @@ async def search(
         )
 
     if data:
-        data = [remap_values(values, show_mappings) for values in dump_model_list(data)]
+        data = [
+            remap_values(values, OUTPUT_VALUE_MAPPINGS)
+            for values in dump_model_list(data, fields)
+        ]
         print(tabulate(data, headers="keys", tablefmt="tsv"))
     else:
         print("No data")
@@ -186,14 +189,16 @@ async def update(
     elif isin:
         isins = isin
     elif sheet:
-        isins = load_tickers_from_sheet(token, sheet, column)
+        isins = load_isins_from_sheet(token, sheet, column)
     else:
         msg = "no source"
         raise ValueError(msg)
 
     async with async_client:
         data = await load_from_db(
-            async_client, isins=isins, update_predictions=True, skip_predictions=False
+            async_client,
+            isins=isins,
+            update_predictions=PredictionsUpdateMode.ALL,
         )
 
     if data:
@@ -211,14 +216,15 @@ def load_snaps(date: datetime) -> None:
 @snaps_app.command("diff")
 async def diff_snaps(date: list[datetime]) -> None:
     async with async_client:
-        await print_diff(async_client, *map(load_snapshot, date))
+        db = await load_base_db()
+        print_diff(db, *map(load_snapshot, date))
 
 
 @sheets_app.command("read")
 def read_sheets(
     token: Path = Option(), sheet: str = Option(), column: str = Option()
 ) -> None:
-    print(load_tickers_from_sheet(token, sheet, column))
+    print(load_isins_from_sheet(token, sheet, column))
 
 
 if __name__ == "__main__":

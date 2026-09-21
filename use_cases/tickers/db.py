@@ -1,20 +1,36 @@
+import json
 import locale
+import re
 from asyncio import Semaphore
 from collections.abc import AsyncIterator, Callable
 from datetime import date
-from enum import StrEnum, auto
+from enum import StrEnum, auto, nonmember
 from functools import wraps
+from typing import NamedTuple
 
 from asyncstdlib import zip as azip
-from funcy import group_by, lcat
+from funcy import compact, lfilter, project
 from httpxyz import AsyncClient
-from pydantic import BaseModel, field_validator
+from pydantic import TypeAdapter
 
-from .db import Prediction, Sector, load_from_db
-from .utils import Request, get_batch, remap_values, select_one_from_response
+from use_cases.utils import (
+    Request,
+    get_batch,
+    get_text_from_node,
+    indicate_work,
+    not_in,
+    remap_values,
+    select_many_from_response,
+    select_one_from_response,
+    write_json,
+)
+
+from .base import Db, Prediction, PredictionsUpdateMode, Sector, Ticker
+from .predictions import set_predictions
 
 
 class ShowField(StrEnum):
+    NAME = auto()
     ISIN = auto()
     GRADE = auto()
     PROFITABILITY = auto()
@@ -26,39 +42,23 @@ class ShowField(StrEnum):
     PREDICTION = auto()
     PREDICTION_DATE = auto()
 
-
-class ParseInfo(BaseModel):
-    short_name: str
-    isin: str
-    coupon: float
-    grade: str
-
-
-class Info(BaseModel):
-    name: str
-    isin: str
-    grade: str
-    coupon: float
-    quote: float
-    nominal: str
-    maturity_date: date
-    sector: Sector
-    prediction: Prediction | None
-    prediction_date: date | None
-
-    @field_validator("prediction_date", mode="before")
-    @classmethod
-    def parse_prediction_date(cls, v):
-        if isinstance(v, date | None):
-            return v
-
-        try:
-            return date.strptime(v, "%d.%m.%Y")
-        except ValueError:
-            return date.strptime(v, "%Y-%m-%d")
+    default = nonmember(
+        [
+            NAME,
+            ISIN,
+            GRADE,
+            COUPON,
+            QUOTE,
+            NOMINAL,
+            MATURITY_DATE,
+            SECTOR,
+            PREDICTION,
+            PREDICTION_DATE,
+        ]
+    )
 
 
-SHOW_CONFIG = {
+CONFIG = {
     "smartlab": {
         "url": "https://smart-lab.ru/q/bonds/{isin}/",
         "concurrency": 15,
@@ -88,7 +88,15 @@ SHOW_CONFIG = {
                 "div:nth-child(3) > div:nth-child(2)"
             ),
         },
-    }
+    },
+    "tinkoff": {
+        "url": "https://www.tbank.ru/invest/bonds/{isin}/",
+        "concurrency": 15,
+        "selectors": {
+            ShowField.ISIN: ".SecurityHeader__ticker_j7fZW",
+            ShowField.NAME: ".SecurityHeader__showName_iw6qC",
+        },
+    },
 }
 
 
@@ -117,6 +125,97 @@ SECTOR_MAPPING = {
     "Субфедеральные": Sector.GOV,
     "Медицина": Sector.FARMA,
 }
+
+
+class ParsedName(NamedTuple):
+    company: str
+    series: str
+
+
+async def load_base_db(client: AsyncClient, *, isins: list[str] | None = None) -> Db:
+    if isins is None:
+        isins = []
+
+    db = _read_db_from_file()
+
+    if isins:
+        await _set_base_info(client, db, isins)
+
+    return project(compact(db), isins) if isins else db
+
+
+async def load_from_db(
+    client: AsyncClient,
+    *,
+    isins: list[str] | None = None,
+    update_predictions: PredictionsUpdateMode = PredictionsUpdateMode.OUTDATED,
+    skip_empty: bool = False,
+) -> Db:
+    if isins is None:
+        isins = []
+
+    db = _read_db_from_file()
+
+    if isins:
+        await _set_base_info(client, db, isins)
+
+    await set_predictions(
+        client, db, isins=isins, update_predictions=update_predictions
+    )
+
+    await set_infos(client, db, isins=isins)
+    _write_db_to_file(db)
+
+    if skip_empty:
+        db = compact(db)
+
+    return project(db, isins) if isins else db
+
+
+async def _set_base_info(client, db, isins):
+    config = CONFIG["tinkoff"]
+    uncached_isins = lfilter(not_in(db), isins)
+
+    caption = "Loading base info from tinkoff"
+    sem = Semaphore(config["concurrency"])
+    reqs = [
+        Request(sem=sem, url=config["url"].format(isin=isin)) for isin in uncached_isins
+    ]
+
+    async for isin, response in azip(uncached_isins, get_batch(caption, client, reqs)):
+        info = _parse_info_page(response)
+        db[isin] = info
+
+
+def _parse_info_page(response) -> Ticker:
+    selectors = CONFIG["tinkoff"]["selectors"]
+
+    if not response.is_success:
+        return None
+
+    nodes = select_many_from_response(response, [selectors["isin"], selectors["name"]])
+    isin, name = map(get_text_from_node, nodes[0])
+    return Ticker(isin=isin, **_parse_name(name)._asdict())
+
+
+def _parse_name(name: str) -> ParsedName:
+    naive_company, *naive_series = name.rsplit(" ", 2)
+
+    match len(naive_series):
+        case 0:
+            m = re.match(r"([A-Za-zА-Яа-я]+)-?([0-9\w]+)", name)
+            company, series = m.groups()
+        case 1:
+            company, series = naive_company, naive_series[0]
+        case 2:
+            if naive_series[-1].isalpha() or naive_series[0] in {"БО", "АО"}:
+                company, series = naive_company, " ".join(naive_series)
+            else:
+                company, series = name.rsplit(" ", 1)
+        case _:
+            raise ValueError(name)
+
+    return ParsedName(company, series)
 
 
 def parse_date(*formats: str) -> Callable:
@@ -175,7 +274,6 @@ INPUT_VALUE_MAPPINGS = {
 OUTPUT_VALUE_MAPPINGS = {
     ShowField.PROFITABILITY: locale.localize,
     ShowField.COUPON: localize_percents,
-    "current_coupon": localize_percents,
     ShowField.QUOTE: localize_percents,
     ShowField.NOMINAL: localize_digits,
     ShowField.MATURITY_DATE: localize_date,
@@ -184,21 +282,10 @@ OUTPUT_VALUE_MAPPINGS = {
 }
 
 
-async def get_infos(
-    client: AsyncClient,
-    *,
-    isins: list[str],
-    update_predictions: bool = False,
-    skip_predictions: bool = True,
-) -> AsyncIterator[Info]:
-    db = await load_from_db(
-        client,
-        isins=isins,
-        update_predictions=update_predictions,
-        skip_predictions=skip_predictions,
-    )
-
-    config = SHOW_CONFIG["smartlab"]
+async def set_infos(
+    client: AsyncClient, db: Db, *, isins: list[str]
+) -> AsyncIterator[Ticker]:
+    config = CONFIG["smartlab"]
     selectors = config["selectors"]
 
     sem = Semaphore(config["concurrency"])
@@ -223,19 +310,14 @@ async def get_infos(
         values["coupon"] = values["coupon"] or values["profitability"]
         del values["profitability"]
 
-        yield Info(name=ticker.full_name, isin=isin, **values)
+        for k, v in values.items():
+            setattr(ticker, k, v)
 
 
-async def find_duplicates(
-    client: AsyncClient, *, isins: list[str]
-) -> AsyncIterator[Info]:
-    db = await load_from_db(client, isins=isins)
-    isins_by_company = group_by(lambda isin: db[isin] and db[isin].company, isins)
-    isins_with_duplicates = lcat(
-        isins_in_company
-        for isins_in_company in isins_by_company.values()
-        if len(isins_in_company) > 1
-    )
+def _read_db_from_file() -> Db:
+    with indicate_work("Loading DB"), open("db.json", encoding="utf-8") as f:
+        return TypeAdapter(Db).validate_python(json.load(f))
 
-    async for info in get_infos(client, isins=isins_with_duplicates):
-        yield info
+
+def _write_db_to_file(data: Db) -> None:
+    write_json("db.json", data)

@@ -1,13 +1,13 @@
 from pathlib import Path
 
-from funcy.seqs import concat
+from funcy import concat
 from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
 
 from .utils import indicate_work
 
 
-def load_tickers_from_sheet(token: Path, sheet_id: str, col_id: str) -> list[str]:
+def load_isins_from_sheet(token: Path, sheet_id: str, col_id: str) -> list[str]:
     with indicate_work("Loading tickers from sheet"):
         creds = Credentials.from_service_account_file(
             str(token), scopes=["https://www.googleapis.com/auth/spreadsheets"]

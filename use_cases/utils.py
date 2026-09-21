@@ -3,10 +3,12 @@ from collections.abc import AsyncIterator, Callable, Generator
 from contextlib import contextmanager
 from dataclasses import asdict, fields, is_dataclass
 from datetime import date, datetime
+from functools import wraps
 from pathlib import Path
 from typing import Any
 
 import pytz
+from funcy import split
 from httpx_retries import RetryTransport
 from httpxyz import AsyncClient, Response
 from lxml import etree
@@ -143,8 +145,13 @@ def write_json[T](path: str, data: T) -> None:
     )
 
 
-def dump_model_list[T](data: list[T]) -> list[dict]:
-    return TypeAdapter(list[T]).dump_python(data)
+def dump_model_list[T](data: list[T], fields: list[str] | None = None) -> list[dict]:
+    fields = fields or get_model_fields(data[0])
+    return [{field: getattr(d, field) for field in fields} for d in data]
+
+
+def get_model_fields(m: BaseModel) -> list[str]:
+    return type(m).model_fields
 
 
 def noop[T](v: T) -> T:
@@ -157,3 +164,28 @@ def remap_values(values: dict, mapping: dict) -> dict:
 
 def now():
     return datetime.now(tz=pytz.timezone("Europe/Moscow"))
+
+
+def merge_dicts(one: dict, two: dict) -> dict:
+    overlapping, missing = split(lambda k: k in one, two)
+
+    for key in overlapping:
+        one[key] |= two[key]
+
+    return one | project(two, missing)
+
+
+def is_in(seq):
+    @wraps(is_in)
+    def inner(el):
+        return el in seq
+
+    return inner
+
+
+def not_in(seq):
+    @wraps(not_in)
+    def inner(el):
+        return el not in seq
+
+    return inner

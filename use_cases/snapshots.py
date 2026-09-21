@@ -6,13 +6,11 @@ from itertools import pairwise
 from pathlib import Path
 
 from funcy import concat, group_by
-from httpxyz import AsyncClient
 from pydantic import BaseModel
 from tabulate import tabulate
 from whatever import that
 
-from .db import Grade, Prediction, Sector, load_from_db
-from .show import Info
+from .tickers import Db, Grade, Prediction, Sector, Ticker
 from .utils import now, write_json
 
 type Value = int | float | str
@@ -31,21 +29,21 @@ class Snapshot(BaseModel):
     prediction_date: date
 
     @classmethod
-    def from_info(cls, infos: list[Info]) -> dict[str, Snapshot]:
+    def from_ticker(cls, tickers: list[Ticker]) -> dict[str, Snapshot]:
         return {
-            info.isin: Snapshot(
+            ticker.isin: Snapshot(
                 ts=now(),
-                isin=info.isin,
-                grade=info.grade,
-                coupon=info.coupon,
-                quote=info.quote,
-                nominal=info.nominal,
-                maturity_date=info.maturity_date,
-                sector=info.sector,
-                prediction=info.prediction,
-                prediction_date=info.prediction_date,
+                isin=ticker.isin,
+                grade=ticker.grade,
+                coupon=ticker.coupon,
+                quote=ticker.quote,
+                nominal=ticker.nominal,
+                maturity_date=ticker.maturity_date,
+                sector=ticker.sector,
+                prediction=ticker.prediction,
+                prediction_date=ticker.prediction_date,
             )
-            for info in infos
+            for ticker in tickers
         }
 
     @classmethod
@@ -94,14 +92,13 @@ class Change(BaseModel):
     to_ts: datetime
 
 
-async def print_diff(client: AsyncClient, *snapshots: Snapshot) -> None:
+def print_diff(db: Db, *snapshots: Snapshot) -> None:
     changes: list[Change] = diff_snapshots(*snapshots)
 
     if not changes:
         print("Nothing to report")
         return
 
-    db = await load_from_db(client, isins=[change.isin for change in changes])
     grouped_by_severity = group_by(that.severity, changes)
 
     print()
@@ -113,7 +110,7 @@ async def print_diff(client: AsyncClient, *snapshots: Snapshot) -> None:
                 ticker = db[change.isin]
                 table.append(
                     {
-                        "name": ticker.full_name,
+                        "name": ticker.name,
                         "field": field,
                         "from": change.from_,
                         "to": change.to_,
@@ -123,8 +120,8 @@ async def print_diff(client: AsyncClient, *snapshots: Snapshot) -> None:
         print(tabulate(table, headers="keys"), "\n")
 
 
-def write_snapshot(infos: list[Info]) -> None:
-    snapshot = Snapshot.from_info(infos)
+def write_snapshot(infos: list[Ticker]) -> None:
+    snapshot = Snapshot.from_ticker(infos)
 
     dt = now()
     day = dt.date().isoformat()
