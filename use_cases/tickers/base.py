@@ -1,10 +1,15 @@
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from enum import StrEnum, auto
 from functools import cached_property
+from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict, computed_field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validator
+
+from use_cases.utils import now
 
 type Db = dict[str, Ticker | None]
+OUTDATED_PREDICTION_CUTOFF = timedelta(days=200)
+OUTDATED_CUTOFF = timedelta(hours=4)
 
 
 class PredictionsUpdateMode(StrEnum):
@@ -14,12 +19,13 @@ class PredictionsUpdateMode(StrEnum):
 
 
 class Ticker(BaseModel):
+    ts: Annotated[datetime, Field(default_factory=now)]
     isin: str
-    company: str
-    series: str
+    company: str | None = None
+    series: str | None = None
     inn: str | None = None
-    grade: str | None = None
-    nominal: str | None = None
+    grade: Grade | None = None
+    nominal: float | None = None
     maturity_date: date | None = None
     sector: Sector | None = None
     coupon: float | None = None
@@ -54,9 +60,14 @@ class Ticker(BaseModel):
         return self.isin.lower()
 
     @property
-    def has_outdated_prediction(self):
-        cutoff = date.today() - timedelta(days=200)
-        return self.prediction_date < cutoff
+    def has_outdated_prediction(self) -> bool:
+        return self.is_outdated and (
+            now().date() - self.prediction_date > OUTDATED_PREDICTION_CUTOFF
+        )
+
+    @property
+    def is_outdated(self) -> bool:
+        return now() - self.ts > OUTDATED_CUTOFF
 
 
 class Prediction(StrEnum):
@@ -115,9 +126,17 @@ class Grade(StrEnum):
     B_PLUS = "B+"
     B = "B"
     B_MINUS = "B-"
+    CCC_PLUS = "CCC+"
+    CCC = "CCC"
+    CCC_MINUS = "CCC-"
+    CC_PLUS = "CC+"
+    CC = "CC"
+    CC_MINUS = "CC-"
     C_PLUS = "C+"
     C = "C"
     C_MINUS = "C-"
+    D_PLUS = "D+"
+    D = "D"
 
 
 class GradeQuality(StrEnum):

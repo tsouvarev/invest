@@ -1,6 +1,5 @@
-import json
 from collections.abc import Iterator
-from datetime import date, datetime
+from datetime import datetime
 from enum import IntEnum, auto
 from itertools import pairwise
 from pathlib import Path
@@ -10,45 +9,10 @@ from pydantic import BaseModel
 from tabulate import tabulate
 from whatever import that
 
-from .tickers import Db, Grade, Prediction, Sector, Ticker
+from .tickers import Db, Ticker, read_db_from_file
 from .utils import now, write_json
 
 type Value = int | float | str
-
-
-class Snapshot(BaseModel):
-    ts: datetime
-    isin: str
-    grade: Grade
-    coupon: float
-    quote: float
-    nominal: float
-    maturity_date: date
-    sector: Sector
-    prediction: Prediction
-    prediction_date: date
-
-    @classmethod
-    def from_ticker(cls, tickers: list[Ticker]) -> dict[str, Snapshot]:
-        return {
-            ticker.isin: Snapshot(
-                ts=now(),
-                isin=ticker.isin,
-                grade=ticker.grade,
-                coupon=ticker.coupon,
-                quote=ticker.quote,
-                nominal=ticker.nominal,
-                maturity_date=ticker.maturity_date,
-                sector=ticker.sector,
-                prediction=ticker.prediction,
-                prediction_date=ticker.prediction_date,
-            )
-            for ticker in tickers
-        }
-
-    @classmethod
-    def from_json(cls, data: dict[str, dict]) -> dict[str, Snapshot]:
-        return {isin: Snapshot(**info) for isin, info in data.items()}
 
 
 class Severity(IntEnum):
@@ -92,7 +56,7 @@ class Change(BaseModel):
     to_ts: datetime
 
 
-def print_diff(db: Db, *snapshots: Snapshot) -> None:
+def print_diff(db: Db, *snapshots: Db) -> None:
     changes: list[Change] = diff_snapshots(*snapshots)
 
     if not changes:
@@ -120,9 +84,7 @@ def print_diff(db: Db, *snapshots: Snapshot) -> None:
         print(tabulate(table, headers="keys"), "\n")
 
 
-def write_snapshot(infos: list[Ticker]) -> None:
-    snapshot = Snapshot.from_ticker(infos)
-
+def write_snapshot(tickers: list[Ticker]) -> None:
     dt = now()
     day = dt.date().isoformat()
     ts = dt.time().isoformat()
@@ -130,21 +92,20 @@ def write_snapshot(infos: list[Ticker]) -> None:
     path = Path("snapshots") / day
     path.mkdir(exist_ok=True, parents=True)
 
-    write_json(path / f"{ts}.json", snapshot)
+    write_json(path / f"{ts}.json", tickers)
 
 
-def load_snapshot(dt: datetime) -> dict[str, Snapshot]:
+def load_snapshot(dt: datetime) -> dict[str, Db]:
     snapshot = {}
 
     path = Path("snapshots") / dt.date().isoformat()
     for filepath in path.iterdir():
-        with filepath.open() as f:
-            snapshot |= Snapshot.from_json(json.load(f))
+        snapshot |= read_db_from_file(filepath)
 
     return snapshot
 
 
-def get_last_snapshot() -> Snapshot:
+def get_last_snapshot() -> Db:
     path = Path("snapshots")
 
     for day_path in sorted(path.iterdir(), reverse=True):
@@ -156,7 +117,7 @@ def get_last_snapshot() -> Snapshot:
     return None
 
 
-def diff_snapshots(*snapshots: Snapshot) -> list[Change]:
+def diff_snapshots(*snapshots: Db) -> list[Change]:
     diff = []
     snapshots = [s for s in snapshots if s is not None]
 
@@ -170,7 +131,7 @@ def diff_snapshots(*snapshots: Snapshot) -> list[Change]:
     return sorted(diff, key=that.severity)
 
 
-def _diff_for_isin(isin: str, *snapshots: Snapshot) -> list[Change]:
+def _diff_for_isin(isin: str, *snapshots: Db) -> list[Change]:
     diff = []
 
     for field in type(snapshots[0]).model_fields:
@@ -182,9 +143,7 @@ def _diff_for_isin(isin: str, *snapshots: Snapshot) -> list[Change]:
     return diff
 
 
-def _diff_for_field(
-    isin: str, field: str, snapshots: list[Snapshot]
-) -> Iterator[Change]:
+def _diff_for_field(isin: str, field: str, snapshots: list[Db]) -> Iterator[Change]:
     for snap_a, snap_b in pairwise(snapshots):
         a, b = getattr(snap_a, field), getattr(snap_b, field)
         if a == b:

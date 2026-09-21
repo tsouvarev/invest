@@ -4,14 +4,18 @@ from datetime import date
 from enum import StrEnum, auto
 from itertools import count
 
-from funcy.colls import walk_values
-from funcy.seqs import group_by
+from funcy import group_by, walk_values
 from httpxyz import AsyncClient
 from whatever import that
 
-from use_cases.tickers.db import load_base_db
-
-from .tickers import Db, Prediction, PredictionsUpdateMode, Ticker, load_from_db
+from .tickers import (
+    Db,
+    Prediction,
+    PredictionsUpdateMode,
+    Ticker,
+    load_base_db,
+    load_from_db,
+)
 from .utils import indicate_work, select_many_from_response
 
 
@@ -162,8 +166,17 @@ async def search_tickers(
     _drop_bad_quotes(new_tickers)
 
     if show_better_duplicates:
+        used_db = await load_base_db(client, isins=used_isins)
+        conflict_companies = {ticker._company for ticker in new_tickers.values()}
+        conflict_used_tickers = [
+            isin
+            for isin, ticker in used_db.items()
+            if ticker._company in conflict_companies
+        ]
         used_tickers = await load_from_db(
-            client, isins=used_isins, update_predictions=PredictionsUpdateMode.SKIP
+            client,
+            isins=conflict_used_tickers,
+            update_predictions=PredictionsUpdateMode.SKIP,
         )
         _drop_worse_duplicates(new_tickers, used_tickers)
 
@@ -218,7 +231,7 @@ def _drop_bad_predictions(db: Db) -> None:
 
 def _drop_bad_quotes(db: Db) -> None:
     for isin, ticker in list(db.items()):
-        if ticker.quote < 70:
+        if not ticker.quote or ticker.quote < 70:
             del db[isin]
 
 

@@ -73,6 +73,9 @@ async def set_predictions(
     elif update_predictions == PredictionsUpdateMode.SKIP:
         return None
 
+    if not isins:
+        return None
+
     await _set_inns(client, db, isins=isins)
     csrf = await _get_cbr_csrf(client)
 
@@ -134,6 +137,9 @@ async def _set_inns(client, db, *, isins):
     sem = Semaphore(config["concurrency"])
     isins = [isin for isin in isins if db[isin] and not db[isin].inn]
 
+    if not isins:
+        return
+
     reqs = [
         Request(
             sem=sem,
@@ -178,12 +184,16 @@ def _get_last_prediction(predictions: list[CbrItem]) -> tuple[Prediction, date]:
 def _parse_prediction(s: str) -> Prediction:
     if has_prefixes(s, ("STA", "NA")):
         return Prediction.STABLE
-    if has_prefixes(s, ("UN", "DEV", "UNW")):
+
+    if has_prefixes(s, ("UN", "DEV", "UNW")) or not s:
         return Prediction.UNKNOWN
+
     if has_prefixes(s, ("NEG", "OP")):
         return Prediction.NEGATIVE
+
     if has_prefixes(s, ("POS",)):
         return Prediction.POSITIVE
+
     raise ValueError(s)
 
 

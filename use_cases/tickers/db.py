@@ -19,6 +19,7 @@ from use_cases.utils import (
     get_text_from_node,
     indicate_work,
     not_in,
+    now,
     remap_values,
     select_many_from_response,
     select_one_from_response,
@@ -27,6 +28,8 @@ from use_cases.utils import (
 
 from .base import Db, Prediction, PredictionsUpdateMode, Sector, Ticker
 from .predictions import set_predictions
+
+DB_PATH = "db.json"
 
 
 class ShowField(StrEnum):
@@ -136,7 +139,8 @@ async def load_base_db(client: AsyncClient, *, isins: list[str] | None = None) -
     if isins is None:
         isins = []
 
-    db = _read_db_from_file()
+    with indicate_work("Loading DB"):
+        db = read_db_from_file(DB_PATH)
 
     if isins:
         await _set_base_info(client, db, isins)
@@ -154,7 +158,8 @@ async def load_from_db(
     if isins is None:
         isins = []
 
-    db = _read_db_from_file()
+    with indicate_work("Loading DB"):
+        db = read_db_from_file(DB_PATH)
 
     if isins:
         await _set_base_info(client, db, isins)
@@ -164,7 +169,7 @@ async def load_from_db(
     )
 
     await set_infos(client, db, isins=isins)
-    _write_db_to_file(db)
+    _write_db_to_file(DB_PATH, db)
 
     if skip_empty:
         db = compact(db)
@@ -195,7 +200,7 @@ def _parse_info_page(response) -> Ticker:
 
     nodes = select_many_from_response(response, [selectors["isin"], selectors["name"]])
     isin, name = map(get_text_from_node, nodes[0])
-    return Ticker(isin=isin, **_parse_name(name)._asdict())
+    return Ticker(ts=now(), isin=isin, **_parse_name(name)._asdict())
 
 
 def _parse_name(name: str) -> ParsedName:
@@ -288,8 +293,14 @@ async def set_infos(
     config = CONFIG["smartlab"]
     selectors = config["selectors"]
 
+    outdated_isins = [isin for isin in isins if db[isin] and db[isin].is_outdated]
+    if not outdated_isins:
+        return
+
     sem = Semaphore(config["concurrency"])
-    reqs = [Request(sem=sem, url=config["url"].format(isin=isin)) for isin in isins]
+    reqs = [
+        Request(sem=sem, url=config["url"].format(isin=isin)) for isin in outdated_isins
+    ]
 
     caption = "Getting full info from smartlab"
 
@@ -314,10 +325,10 @@ async def set_infos(
             setattr(ticker, k, v)
 
 
-def _read_db_from_file() -> Db:
-    with indicate_work("Loading DB"), open("db.json", encoding="utf-8") as f:
+def read_db_from_file(path: str) -> Db:
+    with open(path, encoding="utf-8") as f:
         return TypeAdapter(Db).validate_python(json.load(f))
 
 
-def _write_db_to_file(data: Db) -> None:
-    write_json("db.json", data)
+def _write_db_to_file(path: str, data: Db) -> None:
+    write_json(path, data)

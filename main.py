@@ -8,7 +8,6 @@ from tabulate import tabulate
 from use_cases.search import search_tickers
 from use_cases.sheets import load_isins_from_sheet
 from use_cases.snapshots import (
-    Snapshot,
     get_last_snapshot,
     load_snapshot,
     print_diff,
@@ -87,8 +86,7 @@ async def show(
 
         if diff:
             last_snapshot = get_last_snapshot()
-            current_snapshot = Snapshot.from_ticker(tickers)
-            print_diff(data, last_snapshot, current_snapshot)
+            print_diff(data, last_snapshot, tickers)
             write_snapshot(tickers)
 
 
@@ -216,7 +214,7 @@ def load_snaps(date: datetime) -> None:
 @snaps_app.command("diff")
 async def diff_snaps(date: list[datetime]) -> None:
     async with async_client:
-        db = await load_base_db()
+        db = await load_base_db(async_client)
         print_diff(db, *map(load_snapshot, date))
 
 
