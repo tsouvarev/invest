@@ -1,0 +1,30 @@
+[project]
+name = "invest"
+version = "1.0"
+requires-python = ">=3.14"
+dependencies = [
+  "async-typer",
+  "asyncstdlib",
+  "cssselect",
+  "funcy",
+  "google-api-python-client",
+  "google-auth-httplib2",
+  "google-auth-oauthlib",
+  "httpx-retries",
+  "httpxyz",
+  "lxml",
+  "pydantic",
+  "pytz>=2026.3.post1",
+  "sqlalchemy",
+  "tabulate",
+  "tqdm",
+  "typer",
+  "whatever"
+]
+
+[dependency-groups]
+dev = [
+  "ipdb",
+  "ruff",
+  "toml-sort"
+]

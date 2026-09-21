@@ -1,0 +1,44 @@
+line-length = 88
+target-version = "py315"
+
+[lint]
+preview = true
+select = ["ALL"]
+ignore = [
+  "ANN", # Annotations
+  "CPY", # Missing copyright notice at top of file
+  "D", # Docstrings
+  "ambiguous-unicode-character-string",
+  "ambiguous-variable-name",
+  "assert",
+  "batched-without-explicit-strict",
+  "builtin-open",
+  "call-date-today",
+  "commented-out-code",
+  "fallible-context-manager",
+  "invalid-module-name",
+  "magic-value-comparison",
+  "map-without-explicit-strict",
+  "missing-trailing-comma",
+  "print",
+  "private-member-access",
+  "pytest-incorrect-pytest-import",
+  "too-many-arguments",
+  "too-many-positional-arguments",
+  "typing-only-first-party-import",
+  "typing-only-standard-library-import",
+  "typing-only-third-party-import",
+  "unused-function-argument",
+  "unused-lambda-argument",
+  "zip-without-explicit-strict"
+]
+
+[lint.per-file-ignores]
+"main.py" = [
+  "boolean-default-value-positional-argument",
+  "boolean-type-hint-positional-argument",
+  "constant-imported-as-non-constant",
+  "function-call-in-default-argument",
+  "too-many-arguments",
+  "too-many-positional-arguments"
+]
