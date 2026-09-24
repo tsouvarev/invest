@@ -74,7 +74,7 @@ async def show(
         if diff:
             last_snapshot = get_last_snapshot()
             print_diff(data, last_snapshot, data)
-            write_snapshot(tickers)
+            write_snapshot(data)
 
 
 @bonds_app.command()

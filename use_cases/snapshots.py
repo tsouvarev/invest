@@ -84,7 +84,7 @@ def print_diff(db: Db, *snapshots: Db) -> None:
         print(tabulate(table, headers="keys"), "\n")
 
 
-def write_snapshot(tickers: list[Ticker]) -> None:
+def write_snapshot(data: Db) -> None:
     dt = now()
     day = dt.date().isoformat()
     ts = dt.time().isoformat()
@@ -92,7 +92,7 @@ def write_snapshot(tickers: list[Ticker]) -> None:
     path = Path("snapshots") / day
     path.mkdir(exist_ok=True, parents=True)
 
-    write_json(path / f"{ts}.json", tickers)
+    write_json(path / f"{ts}.json", data)
 
 
 def load_snapshot(dt: datetime) -> dict[str, Db]:
