@@ -2,10 +2,9 @@ import json
 import locale
 import re
 from asyncio import Semaphore
-from collections.abc import AsyncIterator, Callable
+from collections.abc import AsyncIterator
 from datetime import date
 from enum import StrEnum, auto, nonmember
-from functools import wraps
 from typing import NamedTuple
 
 from asyncstdlib import zip as azip
@@ -20,13 +19,12 @@ from use_cases.utils import (
     indicate_work,
     not_in,
     now,
-    remap_values,
     select_many_from_response,
     select_one_from_response,
     write_json,
 )
 
-from .base import Db, Prediction, PredictionsUpdateMode, Sector, Ticker
+from .base import Db, Prediction, PredictionsUpdateMode, Ticker
 from .predictions import set_predictions
 
 DB_PATH = "db.json"
@@ -100,33 +98,6 @@ CONFIG = {
             ShowField.NAME: ".SecurityHeader__showName_iw6qC",
         },
     },
-}
-
-
-SECTOR_MAPPING = {
-    "Машиностроение": Sector.INDUSTRY,
-    "МФО": Sector.SERVICES,
-    "Другие услуг": Sector.SERVICES,
-    "Электроэнергетика": Sector.INDUSTRY,
-    "Нефтегазовая отрасль": Sector.RESOURCES,
-    "Горнодобывающие": Sector.RESOURCES,
-    "Ломбарды": Sector.SERVICES,
-    "Недвижимость": Sector.SERVICES,
-    "Хим.пром": Sector.INDUSTRY,
-    "Пищевая пром.": Sector.FOOD,
-    "Сельское хозяйство": Sector.FOOD,
-    "Черная металлургия": Sector.INDUSTRY,
-    "Оборонная промышленность": Sector.INDUSTRY,
-    "Потреб.услуги": Sector.SERVICES,
-    "Телекомы": Sector.SERVICES,
-    "IT компании": Sector.OTHER,
-    "Высокие технологии": Sector.OTHER,
-    "Другая промышленность": Sector.INDUSTRY,
-    "Финансы прочие": Sector.BANKING,
-    "Цветная Металлургия": Sector.INDUSTRY,
-    "Холдинг": Sector.OTHER,
-    "Субфедеральные": Sector.GOV,
-    "Медицина": Sector.FARMA,
 }
 
 
@@ -223,20 +194,6 @@ def _parse_name(name: str) -> ParsedName:
     return ParsedName(company, series)
 
 
-def parse_date(*formats: str) -> Callable:
-    @wraps(parse_date)
-    def inner(v: str) -> date:
-        for format_ in formats:
-            try:
-                return date.strptime(v, format_)
-            except ValueError:
-                pass
-
-        raise ValueError(v)
-
-    return inner
-
-
 def parse_human_date(v: str) -> date:
     locale.setlocale(category=locale.LC_ALL, locale="ru_RU")
     return date.strptime(v, "%d %B %Y")
@@ -259,22 +216,6 @@ def localize_percents(v: float) -> str:
     locale.setlocale(category=locale.LC_ALL, locale="nl_NL")
     return locale.localize(f"{v}%")
 
-
-def map_sector(v: str) -> str:
-    return SECTOR_MAPPING.get(v, v)
-
-
-def str_percent_to_float(v: str) -> float:
-    return float(v.strip(" %") or "0")
-
-
-INPUT_VALUE_MAPPINGS = {
-    ShowField.PROFITABILITY: str_percent_to_float,
-    ShowField.COUPON: str_percent_to_float,
-    ShowField.QUOTE: str_percent_to_float,
-    ShowField.SECTOR: map_sector,
-    ShowField.MATURITY_DATE: parse_date("%d-%m-%Y"),
-}
 
 OUTPUT_VALUE_MAPPINGS = {
     ShowField.PROFITABILITY: locale.localize,
@@ -317,12 +258,10 @@ async def set_infos(
             "prediction": ticker.prediction,
             "prediction_date": ticker.prediction_date,
         }
-        values = remap_values(values, INPUT_VALUE_MAPPINGS)
         values["coupon"] = values["coupon"] or values["profitability"]
         del values["profitability"]
 
-        for k, v in values.items():
-            setattr(ticker, k, v)
+        db[isin] = Ticker(**(ticker.model_dump_json() | values))
 
 
 def read_db_from_file(path: str) -> Db:

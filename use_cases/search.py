@@ -65,32 +65,6 @@ SEARCH_CONFIG = {
 }
 
 
-SECTOR_MAPPING = {
-    "Машиностроение": "Производство",
-    "МФО": "Услуги",
-    "Другие услуг": "Услуги",
-    "Электроэнергетика": "Производство",
-    "Нефтегазовая отрасль": "Ресурсы",
-    "Горнодобывающие": "Ресурсы",
-    "Ломбарды": "Услуги",
-    "Недвижимость": "Услуги",
-    "Хим.пром": "Производство",
-    "Пищевая пром.": "Еда",
-    "Сельское хозяйство": "Еда",
-    "Черная металлургия": "Производство",
-    "Оборонная промышленность": "Производство",
-    "Потреб.услуги": "Услуги",
-    "Телекомы": "Услуги",
-    "IT компании": "Прочее",
-    "Другая промышленность": "Производство",
-    "Финансы прочие": "Банки",
-    "Цветная Металлургия": "Производство",
-    "Холдинг": "Прочее",
-    "Субфедеральные": "Гос",
-    "Медицина": "Фармацевтика",
-}
-
-
 def noop(v: str) -> str:
     return v
 
@@ -113,22 +87,6 @@ def localize_percents(v: float) -> str:
     return locale.localize(f"{v}%")
 
 
-def map_sector(v: str) -> str:
-    return SECTOR_MAPPING.get(v, v)
-
-
-def str_percent_to_float(v: str) -> float:
-    return float(v.strip(" %") or "0")
-
-
-INPUT_VALUE_MAPPINGS = {
-    SearchField.PROFITABILITY: str_percent_to_float,
-    SearchField.COUPON: str_percent_to_float,
-    SearchField.QUOTE: str_percent_to_float,
-    SearchField.NOMINAL: localize_digits,
-    SearchField.MATURITY_DATE: parse_date,
-}
-
 OUTPUT_VALUE_MAPPINGS = {
     SearchField.PROFITABILITY: locale.localize,
     SearchField.COUPON: localize_percents,
@@ -136,7 +94,6 @@ OUTPUT_VALUE_MAPPINGS = {
     SearchField.QUOTE: localize_percents,
     SearchField.NOMINAL: localize_digits,
     SearchField.MATURITY_DATE: localize_date,
-    SearchField.SECTOR: map_sector,
 }
 
 

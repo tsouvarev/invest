@@ -135,7 +135,7 @@ def _diff_for_isin(isin: str, *snapshots: Db) -> list[Change]:
     diff = []
 
     for field in type(snapshots[0]).model_fields:
-        if field in {"isin", "ts"}:
+        if field in {"isin", "ts", "company", "series", "inn"}:
             continue
 
         diff.extend(_diff_for_field(isin, field, snapshots))

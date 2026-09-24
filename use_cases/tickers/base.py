@@ -5,17 +5,11 @@ from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validator
 
-from use_cases.utils import now
+from use_cases.utils import now, parse_date, str_percent_to_float
 
 type Db = dict[str, Ticker | None]
 OUTDATED_PREDICTION_CUTOFF = timedelta(days=200)
 OUTDATED_CUTOFF = timedelta(hours=4)
-
-
-class PredictionsUpdateMode(StrEnum):
-    SKIP = auto()
-    OUTDATED = auto()
-    ALL = auto()
 
 
 class Ticker(BaseModel):
@@ -35,16 +29,22 @@ class Ticker(BaseModel):
 
     model_config = ConfigDict(use_enum_values=True)
 
-    @field_validator("prediction_date", mode="before")
+    @field_validator("prediction_date", "maturity_date", mode="before")
     @classmethod
-    def parse_prediction_date(cls, v):
-        if v is None:
-            return v
+    def parse_dt(cls, v):
+        return v and parse_date("%d.%m.%Y", "%d-%m-%Y", "%Y-%m-%d")(v)
 
-        try:
-            return date.strptime(v, "%d.%m.%Y")
-        except ValueError:
-            return date.strptime(v, "%Y-%m-%d")
+    @field_validator("sector", mode="before")
+    @classmethod
+    def parse_sector(cls, v):
+        return Sector.from_value(v)
+
+    @field_validator("coupon", "quote", mode="before")
+    @classmethod
+    def parse_percents(cls, v):
+        if isinstance(v, float):
+            return v
+        return str_percent_to_float(v)
 
     @computed_field
     @property
@@ -68,6 +68,12 @@ class Ticker(BaseModel):
     @property
     def is_outdated(self) -> bool:
         return now() - self.ts > OUTDATED_CUTOFF
+
+
+class PredictionsUpdateMode(StrEnum):
+    SKIP = auto()
+    OUTDATED = auto()
+    ALL = auto()
 
 
 class Prediction(StrEnum):
@@ -107,6 +113,34 @@ class Sector(StrEnum):
     TRANSPORT = "Транспорт"
     SERVICES = "Услуги"
     FARMA = "Фармацевтика"
+
+    @classmethod
+    def from_value(cls, v: str) -> Sector:
+        return {
+            "Машиностроение": Sector.INDUSTRY,
+            "МФО": Sector.SERVICES,
+            "Другие услуг": Sector.SERVICES,
+            "Электроэнергетика": Sector.INDUSTRY,
+            "Нефтегазовая отрасль": Sector.RESOURCES,
+            "Горнодобывающие": Sector.RESOURCES,
+            "Ломбарды": Sector.SERVICES,
+            "Недвижимость": Sector.SERVICES,
+            "Хим.пром": Sector.INDUSTRY,
+            "Пищевая пром.": Sector.FOOD,
+            "Сельское хозяйство": Sector.FOOD,
+            "Черная металлургия": Sector.INDUSTRY,
+            "Оборонная промышленность": Sector.INDUSTRY,
+            "Потреб.услуги": Sector.SERVICES,
+            "Телекомы": Sector.SERVICES,
+            "IT компании": Sector.OTHER,
+            "Высокие технологии": Sector.OTHER,
+            "Другая промышленность": Sector.INDUSTRY,
+            "Финансы прочие": Sector.BANKING,
+            "Цветная Металлургия": Sector.INDUSTRY,
+            "Холдинг": Sector.OTHER,
+            "Субфедеральные": Sector.GOV,
+            "Медицина": Sector.FARMA,
+        }.get(v, v)
 
 
 class Grade(StrEnum):

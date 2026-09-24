@@ -195,3 +195,21 @@ def not_in(seq):
         return el not in seq
 
     return inner
+
+
+def parse_date(*formats: str) -> Callable:
+    @wraps(parse_date)
+    def inner(v: str) -> date:
+        for format_ in formats:
+            try:
+                return date.strptime(v, format_)
+            except ValueError:
+                pass
+
+        raise ValueError(v)
+
+    return inner
+
+
+def str_percent_to_float(v: str) -> float:
+    return float(v.strip(" %") or "0")
