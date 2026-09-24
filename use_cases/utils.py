@@ -1,3 +1,5 @@
+import os
+import ssl
 from asyncio import Semaphore, TaskGroup
 from collections.abc import AsyncIterator, Callable, Generator
 from contextlib import contextmanager
@@ -10,14 +12,18 @@ from typing import Any
 import pytz
 from funcy import split
 from httpx_retries import RetryTransport
-from httpxyz import AsyncClient, Response
+from httpxyz import AsyncClient, AsyncHTTPTransport, Response
 from lxml import etree
 from pydantic import BaseModel, ConfigDict, TypeAdapter
 from tqdm import tqdm
 
 parser = etree.XMLParser(recover=True)
 
-retry = RetryTransport()
+russian_ca = os.getenv("RUSSIAN_CA")
+ssl_context = ssl.create_default_context()
+ssl_context.load_verify_locations(cadata=russian_ca)
+
+retry = RetryTransport(AsyncHTTPTransport(verify=ssl_context))
 async_client = AsyncClient(
     transport=retry,
     headers={
