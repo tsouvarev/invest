@@ -140,13 +140,22 @@ class PredictionsUpdateMode(StrEnum):
 
 class BondType(StrEnum):
     AMORTIZED = auto()
-    FIX = auto()
+    FIX_KNOWN = auto()
+    FIX_UNKNOWN = auto()
+    CONVERTIBLE = auto()
+    LINKER = auto()
     FLOATER = auto()
 
     @classmethod
     def humanize(cls, v):
         match v:
-            case cls.FIX | cls.AMORTIZED:
+            case (
+                cls.FIX_KNOWN
+                | cls.FIX_UNKNOWN
+                | cls.AMORTIZED
+                | cls.CONVERTIBLE
+                | cls.LINKER
+            ):
                 return "Фикс"
             case cls.FLOATER:
                 return "Флоат"
@@ -157,9 +166,11 @@ class BondType(StrEnum):
     def from_value(cls, v) -> BondType:
         return {
             "Амортизируемая облигация": BondType.AMORTIZED,
-            "Облигация с фиксированным (известным) купоном": BondType.FIX,
-            "Облигация с фиксированным (неизвестным) купоном": BondType.FIX,
+            "Облигация с фиксированным (известным) купоном": BondType.FIX_KNOWN,
+            "Облигация с фиксированным (неизвестным) купоном": BondType.FIX_UNKNOWN,
             "Облигация с плавающим купоном": BondType.FLOATER,
+            "Конвертируемая облигация": BondType.CONVERTIBLE,
+            "Линкер/облигация с индексируемым номиналом": BondType.LINKER,
         }[v]
 
 
