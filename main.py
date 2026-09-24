@@ -53,7 +53,7 @@ async def show(
     diff: bool = True,
     update_predictions: PredictionsUpdateMode = PredictionsUpdateMode.OUTDATED,
     fields: list[ShowField] = ShowField.default,
-    token: Annotated[Path | None, Option(envvar="TOKEN_PATH")] = None,
+    token: Annotated[str | None, Option(envvar="GOOGLE_SHEETS_TOKEN")] = None,
     column: Annotated[str | None, Option(envvar="SHEET_COLUMN")] = None,
 ) -> None:
     if file:
@@ -95,7 +95,7 @@ async def duplicates(
     file: Path | None = None,
     isin: list[str] | None = None,
     sheet: Annotated[str | None, Option(envvar="SHEET_ID")] = None,
-    token: Annotated[Path | None, Option(envvar="TOKEN_PATH")] = None,
+    token: Annotated[str | None, Option(envvar="GOOGLE_SHEETS_TOKEN")] = None,
     column: Annotated[str | None, Option(envvar="SHEET_COLUMN")] = None,
 ) -> None:
     if file:
@@ -133,7 +133,7 @@ async def search(
     exclude_duplicates: bool = True,
     show_better_duplicates: bool = True,
     fields: list[ShowField] = ShowField.default,
-    token: Annotated[Path | None, Option(envvar="TOKEN_PATH")] = None,
+    token: Annotated[str | None, Option(envvar="GOOGLE_SHEETS_TOKEN")] = None,
     column: Annotated[str | None, Option(envvar="SHEET_COLUMN")] = None,
 ) -> None:
     if used:
@@ -179,7 +179,7 @@ async def update(
     file: Path | None = None,
     isin: list[str] | None = None,
     sheet: Annotated[str | None, Option(envvar="SHEET_ID")] = None,
-    token: Annotated[Path | None, Option(envvar="TOKEN_PATH")] = None,
+    token: Annotated[str | None, Option(envvar="GOOGLE_SHEETS_TOKEN")] = None,
     column: Annotated[str | None, Option(envvar="SHEET_COLUMN")] = None,
 ) -> None:
     if file:
@@ -216,13 +216,6 @@ async def diff_snaps(date: list[datetime]) -> None:
     async with async_client:
         db = await load_base_db(async_client)
         print_diff(db, *map(load_snapshot, date))
-
-
-@sheets_app.command("read")
-def read_sheets(
-    token: Path = Option(), sheet: str = Option(), column: str = Option()
-) -> None:
-    print(load_isins_from_sheet(token, sheet, column))
 
 
 if __name__ == "__main__":
