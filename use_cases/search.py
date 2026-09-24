@@ -73,8 +73,13 @@ async def search_tickers(
     min_rating: int,
     exclude_duplicates: bool,
     show_better_duplicates: bool,
+    with_floaters: bool,
+    with_structures: bool,
+    with_mortgage: bool,
 ) -> list[Ticker]:
-    isins = await _collect_isins(client, years, min_rating)
+    isins = await _collect_isins(
+        client, years, min_rating, with_floaters, with_structures, with_mortgage
+    )
 
     new_tickers = await load_base_db(client, isins=isins)
 
@@ -109,16 +114,21 @@ async def search_tickers(
 
 
 async def _collect_isins(
-    client: AsyncClient, years: int, min_rating: float
+    client: AsyncClient,
+    years: int,
+    min_rating: float,
+    with_floaters: bool,
+    with_structures: bool,
+    with_mortgage: bool,
 ) -> list[str]:
     isins = []
     params = {
         "paids_year": 12,
         "mat_years_gt": years,
         "rating_gt": min_rating,
-        "bonds_variable": -1,
-        "bonds_structures": -1,
-        "bonds_mortage": -1,
+        "bonds_variable": _to_smartlab_bool(with_floaters),
+        "bonds_structures": _to_smartlab_bool(with_structures),
+        "bonds_mortage": _to_smartlab_bool(with_mortgage),
     }
 
     for name, conf in SEARCH_CONFIG.items():
@@ -187,3 +197,7 @@ def _drop_blacklisted_companies_and_isins(db: Db, blacklist: list[str]) -> None:
     for isin, ticker in list(db.items()):
         if ticker._company in blacklist or ticker._isin in blacklist:
             del db[isin]
+
+
+def _to_smartlab_bool(v: bool) -> int:
+    return -1 if v else 0

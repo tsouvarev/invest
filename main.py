@@ -112,6 +112,9 @@ async def search(
     min_rating: Grade = Grade.BB,
     exclude_duplicates: bool = True,
     show_better_duplicates: bool = True,
+    floaters: bool = False,
+    structures: bool = False,
+    mortgage: bool = False,
     fields: list[ShowField] = ShowField.default,
     token: Annotated[str | None, Option(envvar="GOOGLE_SHEETS_TOKEN")] = None,
     column: Annotated[str | None, Option(envvar="SHEET_COLUMN")] = None,
@@ -142,6 +145,9 @@ async def search(
             min_rating=min_rating,
             exclude_duplicates=exclude_duplicates,
             show_better_duplicates=show_better_duplicates,
+            with_floaters=floaters,
+            with_structures=structures,
+            with_mortgage=mortgage,
         )
         print_model_list(data, fields)
 
