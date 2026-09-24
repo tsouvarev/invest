@@ -31,6 +31,7 @@ DB_PATH = "db.json"
 class ShowField(StrEnum):
     NAME = auto()
     ISIN = auto()
+    TYPE = auto()
     GRADE = auto()
     PROFITABILITY = auto()
     COUPON = auto()
@@ -45,6 +46,7 @@ class ShowField(StrEnum):
         [
             NAME,
             ISIN,
+            TYPE,
             GRADE,
             COUPON,
             QUOTE,
@@ -63,6 +65,10 @@ CONFIG = {
         "concurrency": 15,
         "selectors": {
             ShowField.GRADE: ".linear-progress-bar__text",
+            ShowField.TYPE: (
+                "article.quotes-info-list__item:nth-child(2) > div:nth-child(1) > "
+                "div:nth-child(1) > div:nth-child(2)"
+            ),
             ShowField.PROFITABILITY: (
                 "article.quotes-info-list__item:nth-child(1) > div:nth-child(1) > "
                 "div:nth-child(2) > div:nth-child(2)"

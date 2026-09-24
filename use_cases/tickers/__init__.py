@@ -1,4 +1,4 @@
-from .base import Db, Grade, Prediction, PredictionsUpdateMode, Sector, Ticker
+from .base import BondType, Db, Grade, Prediction, PredictionsUpdateMode, Sector, Ticker
 from .db import (
     ShowField,
     load_base_db,

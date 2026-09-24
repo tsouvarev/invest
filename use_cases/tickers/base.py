@@ -30,6 +30,7 @@ OUTDATED_CUTOFF = timedelta(hours=2)
 class Ticker(BaseModel):
     ts: Annotated[datetime, Field(default_factory=now)]
     isin: str
+    type: BondType | None = None
     company: str | None = None
     series: str | None = None
     inn: str | None = None
@@ -54,9 +55,16 @@ class Ticker(BaseModel):
     @field_validator("sector", mode="before")
     @classmethod
     def parse_sector(cls, v):
-        if isinstance(v, date | None):
+        if isinstance(v, Sector):
             return v
         return Sector.from_value(v)
+
+    @field_validator("type", mode="before")
+    @classmethod
+    def parse_type(cls, v):
+        if v is None or v in BondType:
+            return v
+        return BondType.from_value(v)
 
     @field_validator("coupon", "quote", mode="before")
     @classmethod
@@ -85,6 +93,13 @@ class Ticker(BaseModel):
         if info.mode_is_json():
             return v
         return localize_date(v)
+
+    @field_serializer("type", mode="plain")
+    @classmethod
+    def serialize_type(cls, v, info: FieldSerializationInfo):
+        if info.mode_is_json():
+            return v
+        return BondType.humanize(v)
 
     @field_serializer("prediction", mode="plain")
     @classmethod
@@ -121,6 +136,31 @@ class PredictionsUpdateMode(StrEnum):
     SKIP = auto()
     OUTDATED = auto()
     ALL = auto()
+
+
+class BondType(StrEnum):
+    AMORTIZED = auto()
+    FIX = auto()
+    FLOATER = auto()
+
+    @classmethod
+    def humanize(cls, v):
+        match v:
+            case cls.FIX | cls.AMORTIZED:
+                return "Фикс"
+            case cls.FLOATER:
+                return "Флоат"
+            case _:
+                return v
+
+    @classmethod
+    def from_value(cls, v) -> BondType:
+        return {
+            "Амортизируемая облигация": BondType.AMORTIZED,
+            "Облигация с фиксированным (известным) купоном": BondType.FIX,
+            "Облигация с фиксированным (неизвестным) купоном": BondType.FIX,
+            "Облигация с плавающим купоном": BondType.FLOATER,
+        }[v]
 
 
 class Prediction(StrEnum):
