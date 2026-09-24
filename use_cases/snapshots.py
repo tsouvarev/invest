@@ -176,13 +176,13 @@ def _diff_for_field(isin: str, field: str, snapshots: list[Db]) -> Iterator[Chan
 
 
 def _get_severity_for_quote(a, b):
-    if a < 80 or b < 80:
+    if a < 70 or b < 70:
         return Severity.HIGH
 
-    if a < 90 or b < 90:
+    if a < 80 or b < 80:
         return Severity.MEDIUM
 
-    delta = abs(a - b)
+    delta = a - b
     if delta > 5:
         return Severity.HIGH
     if delta > 2:
