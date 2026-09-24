@@ -14,7 +14,6 @@ from use_cases.snapshots import (
     write_snapshot,
 )
 from use_cases.tickers import (
-    OUTPUT_VALUE_MAPPINGS,
     Db,
     Grade,
     PredictionsUpdateMode,
@@ -25,9 +24,8 @@ from use_cases.tickers import (
 from use_cases.tickers.db import load_base_db
 from use_cases.utils import (
     async_client,
-    dump_model_list,
+    print_model_list,
     read_file_or_none,
-    remap_values,
 )
 
 app = AsyncTyper()
@@ -68,21 +66,10 @@ async def show(
 
     async with async_client:
         data: Db = await load_from_db(
-            async_client,
-            isins=isins,
-            update_predictions=update_predictions,
+            async_client, isins=isins, update_predictions=update_predictions
         )
         tickers = list(data.values())
-
-        if not data:
-            print("No data")
-            return
-
-        output = [
-            remap_values(v, OUTPUT_VALUE_MAPPINGS)
-            for v in dump_model_list(tickers, fields)
-        ]
-        print(tabulate(output, headers="keys", tablefmt="tsv"))
+        print_model_list(tickers, fields)
 
         if diff:
             last_snapshot = get_last_snapshot()
@@ -95,6 +82,7 @@ async def duplicates(
     file: Path | None = None,
     isin: list[str] | None = None,
     sheet: Annotated[str | None, Option(envvar="SHEET_ID")] = None,
+    fields: list[ShowField] = ShowField.default,
     token: Annotated[str | None, Option(envvar="GOOGLE_SHEETS_TOKEN")] = None,
     column: Annotated[str | None, Option(envvar="SHEET_COLUMN")] = None,
 ) -> None:
@@ -110,15 +98,7 @@ async def duplicates(
 
     async with async_client:
         data = await find_duplicates(async_client, isins=isins)
-
-        if not data:
-            print("No data")
-            return
-
-        output_data = [
-            remap_values(v, OUTPUT_VALUE_MAPPINGS) for v in dump_model_list(data)
-        ]
-        print(tabulate(output_data, headers="keys", tablefmt="tsv"))
+        print_model_list(data, fields)
 
 
 @bonds_app.command()
@@ -163,15 +143,7 @@ async def search(
             exclude_duplicates=exclude_duplicates,
             show_better_duplicates=show_better_duplicates,
         )
-
-    if data:
-        data = [
-            remap_values(values, OUTPUT_VALUE_MAPPINGS)
-            for values in dump_model_list(data, fields)
-        ]
-        print(tabulate(data, headers="keys", tablefmt="tsv"))
-    else:
-        print("No data")
+        print_model_list(data, fields)
 
 
 @db_app.command()
@@ -194,15 +166,9 @@ async def update(
 
     async with async_client:
         data = await load_from_db(
-            async_client,
-            isins=isins,
-            update_predictions=PredictionsUpdateMode.ALL,
+            async_client, isins=isins, update_predictions=PredictionsUpdateMode.ALL
         )
-
-    if data:
-        print(tabulate([d for d in data.values() if d]))
-    else:
-        print("No data")
+        print_model_list(data)
 
 
 @snaps_app.command("load")

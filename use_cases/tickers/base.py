@@ -3,13 +3,28 @@ from enum import StrEnum, auto
 from functools import cached_property
 from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    FieldSerializationInfo,
+    computed_field,
+    field_serializer,
+    field_validator,
+)
 
-from use_cases.utils import now, parse_date, str_percent_to_float
+from use_cases.utils import (
+    localize_date,
+    localize_digits,
+    localize_percents,
+    now,
+    parse_date,
+    str_percent_to_float,
+)
 
 type Db = dict[str, Ticker | None]
 OUTDATED_PREDICTION_CUTOFF = timedelta(days=200)
-OUTDATED_CUTOFF = timedelta(hours=4)
+OUTDATED_CUTOFF = timedelta(hours=2)
 
 
 class Ticker(BaseModel):
@@ -32,11 +47,15 @@ class Ticker(BaseModel):
     @field_validator("prediction_date", "maturity_date", mode="before")
     @classmethod
     def parse_dt(cls, v):
-        return v and parse_date("%d.%m.%Y", "%d-%m-%Y", "%Y-%m-%d")(v)
+        if isinstance(v, date | None):
+            return v
+        return parse_date("%d.%m.%Y", "%d-%m-%Y", "%Y-%m-%d")(v)
 
     @field_validator("sector", mode="before")
     @classmethod
     def parse_sector(cls, v):
+        if isinstance(v, date | None):
+            return v
         return Sector.from_value(v)
 
     @field_validator("coupon", "quote", mode="before")
@@ -45,6 +64,34 @@ class Ticker(BaseModel):
         if isinstance(v, float):
             return v
         return str_percent_to_float(v)
+
+    @field_serializer("coupon", "quote", mode="plain")
+    @classmethod
+    def serialize_percents(cls, v, info: FieldSerializationInfo):
+        if info.mode_is_json():
+            return v
+        return localize_percents(v)
+
+    @field_serializer("nominal", mode="plain")
+    @classmethod
+    def serialize_digits(cls, v, info: FieldSerializationInfo):
+        if info.mode_is_json():
+            return v
+        return localize_digits(v)
+
+    @field_serializer("maturity_date", "prediction_date", mode="plain")
+    @classmethod
+    def serialize_date(cls, v, info: FieldSerializationInfo):
+        if info.mode_is_json():
+            return v
+        return localize_date(v)
+
+    @field_serializer("prediction", mode="plain")
+    @classmethod
+    def serialize_prediction(cls, v, info: FieldSerializationInfo):
+        if info.mode_is_json():
+            return v
+        return Prediction.humanize(v)
 
     @computed_field
     @property

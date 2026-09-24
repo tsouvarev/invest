@@ -1,6 +1,4 @@
-import locale
 from collections.abc import Iterator
-from datetime import date
 from enum import StrEnum, auto
 from itertools import count
 
@@ -62,38 +60,6 @@ SEARCH_CONFIG = {
             SearchField.PROFITABILITY: "main table tr td:nth-child(6)",
         },
     },
-}
-
-
-def noop(v: str) -> str:
-    return v
-
-
-def parse_date(v: str) -> date:
-    return date.strptime(v, "%d-%m-%Y")
-
-
-def localize_date(v: date) -> str:
-    return v.strftime("%d.%m.%Y")
-
-
-def localize_digits(v: float) -> str:
-    locale.setlocale(category=locale.LC_ALL, locale="nl_NL")
-    return locale.localize(str(v))
-
-
-def localize_percents(v: float) -> str:
-    locale.setlocale(category=locale.LC_ALL, locale="nl_NL")
-    return locale.localize(f"{v}%")
-
-
-OUTPUT_VALUE_MAPPINGS = {
-    SearchField.PROFITABILITY: locale.localize,
-    SearchField.COUPON: localize_percents,
-    SearchField.CURRENT_COUPON: localize_percents,
-    SearchField.QUOTE: localize_percents,
-    SearchField.NOMINAL: localize_digits,
-    SearchField.MATURITY_DATE: localize_date,
 }
 
 

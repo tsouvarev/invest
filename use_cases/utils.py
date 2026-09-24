@@ -1,3 +1,4 @@
+import locale
 import os
 import ssl
 from asyncio import Semaphore, TaskGroup
@@ -15,6 +16,7 @@ from httpx_retries import RetryTransport
 from httpxyz import AsyncClient, AsyncHTTPTransport, Response
 from lxml import etree
 from pydantic import BaseModel, ConfigDict, TypeAdapter
+from tabulate import tabulate
 from tqdm import tqdm
 
 parser = etree.XMLParser(recover=True)
@@ -144,28 +146,23 @@ def indicate_work(msg_enter: str, msg_exit: str = "Done") -> Generator:
 
 
 def write_json[T](path: str, data: T) -> None:
-    Path(path).write_bytes(
-        TypeAdapter(T).dump_json(
-            data, indent=2, ensure_ascii=True, fallback=encoder_fallback
-        )
+    serialized = TypeAdapter(T).dump_json(
+        data, indent=2, ensure_ascii=True, fallback=encoder_fallback
     )
+    Path(path).write_bytes(serialized)
 
 
-def dump_model_list[T](data: list[T], fields: list[str] | None = None) -> list[dict]:
-    fields = fields or get_model_fields(data[0])
-    return [{field: getattr(d, field) for field in fields} for d in data]
+def print_model_list[T](data: list[T], fields: list[str] | None = None) -> None:
+    if not data:
+        print("No data")
+        return
+
+    dumped = [map(obj.model_dump(include=fields).get, fields) for obj in data]
+    print(tabulate(dumped, headers=fields, tablefmt="tsv"))
 
 
 def get_model_fields(m: BaseModel) -> list[str]:
     return type(m).model_fields
-
-
-def noop[T](v: T) -> T:
-    return v
-
-
-def remap_values(values: dict, mapping: dict) -> dict:
-    return {key: mapping.get(key, noop)(value) for key, value in values.items()}
 
 
 def now():
@@ -213,3 +210,26 @@ def parse_date(*formats: str) -> Callable:
 
 def str_percent_to_float(v: str) -> float:
     return float(v.strip(" %") or "0")
+
+
+def parse_human_date(v: str) -> date:
+    locale.setlocale(category=locale.LC_ALL, locale="ru_RU")
+    return date.strptime(v, "%d %B %Y")
+
+
+def localize_date(v: date) -> str:
+    return v and v.strftime("%d.%m.%Y")
+
+
+def strip_ru(v: str) -> str:
+    return v.removeprefix("ru")
+
+
+def localize_digits(v: float) -> str:
+    locale.setlocale(category=locale.LC_ALL, locale="nl_NL")
+    return locale.localize(str(v))
+
+
+def localize_percents(v: float) -> str:
+    locale.setlocale(category=locale.LC_ALL, locale="nl_NL")
+    return locale.localize(f"{v}%")

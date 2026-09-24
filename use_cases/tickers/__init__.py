@@ -1,6 +1,5 @@
 from .base import Db, Grade, Prediction, PredictionsUpdateMode, Sector, Ticker
 from .db import (
-    OUTPUT_VALUE_MAPPINGS,
     ShowField,
     load_base_db,
     load_from_db,

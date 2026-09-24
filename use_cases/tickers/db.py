@@ -1,9 +1,7 @@
 import json
-import locale
 import re
 from asyncio import Semaphore
 from collections.abc import AsyncIterator
-from datetime import date
 from enum import StrEnum, auto, nonmember
 from typing import NamedTuple
 
@@ -24,7 +22,7 @@ from use_cases.utils import (
     write_json,
 )
 
-from .base import Db, Prediction, PredictionsUpdateMode, Ticker
+from .base import Db, PredictionsUpdateMode, Ticker
 from .predictions import set_predictions
 
 DB_PATH = "db.json"
@@ -194,40 +192,6 @@ def _parse_name(name: str) -> ParsedName:
     return ParsedName(company, series)
 
 
-def parse_human_date(v: str) -> date:
-    locale.setlocale(category=locale.LC_ALL, locale="ru_RU")
-    return date.strptime(v, "%d %B %Y")
-
-
-def localize_date(v: date) -> str:
-    return v and v.strftime("%d.%m.%Y")
-
-
-def strip_ru(v: str) -> str:
-    return v.removeprefix("ru")
-
-
-def localize_digits(v: float) -> str:
-    locale.setlocale(category=locale.LC_ALL, locale="nl_NL")
-    return locale.localize(str(v))
-
-
-def localize_percents(v: float) -> str:
-    locale.setlocale(category=locale.LC_ALL, locale="nl_NL")
-    return locale.localize(f"{v}%")
-
-
-OUTPUT_VALUE_MAPPINGS = {
-    ShowField.PROFITABILITY: locale.localize,
-    ShowField.COUPON: localize_percents,
-    ShowField.QUOTE: localize_percents,
-    ShowField.NOMINAL: localize_digits,
-    ShowField.MATURITY_DATE: localize_date,
-    ShowField.PREDICTION: Prediction.humanize,
-    ShowField.PREDICTION_DATE: localize_date,
-}
-
-
 async def set_infos(
     client: AsyncClient, db: Db, *, isins: list[str]
 ) -> AsyncIterator[Ticker]:
@@ -261,7 +225,7 @@ async def set_infos(
         values["coupon"] = values["coupon"] or values["profitability"]
         del values["profitability"]
 
-        db[isin] = Ticker(**(ticker.model_dump_json() | values))
+        db[isin] = Ticker(**(ticker.model_dump() | values))
 
 
 def read_db_from_file(path: str) -> Db:
