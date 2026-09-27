@@ -1,20 +1,16 @@
 from collections.abc import Iterator
 from enum import StrEnum, auto
 from itertools import count
+from typing import Any
 
 from funcy import group_by, walk_values
 from httpxyz import AsyncClient
 from whatever import that
 
-from .tickers import (
-    Db,
-    Prediction,
-    PredictionsUpdateMode,
-    Ticker,
-    load_base_db,
-    load_from_db,
-)
-from .utils import indicate_work, select_many_from_response
+from utils import indicate_work, select_many_from_response
+
+from .base import Db, Prediction, Ticker
+from .db import PredictionsUpdateMode, load_base_db, load_from_db
 
 
 class SearchField(StrEnum):
@@ -78,18 +74,20 @@ async def search_tickers(
     with_mortgage: bool,
 ) -> list[Ticker]:
     isins = await _collect_isins(
-        client, years, min_rating, with_floaters, with_structures, with_mortgage
+        client,
+        years=years,
+        min_rating=min_rating,
+        with_floaters=with_floaters,
+        with_structures=with_structures,
+        with_mortgage=with_mortgage,
     )
 
-    new_tickers = await load_base_db(client, isins=isins)
+    new_tickers = await load_from_db(client, isins=isins, skip_empty=True)
 
     if exclude_duplicates:
         _drop_duplicated_companies(new_tickers)
 
     _drop_blacklisted_companies_and_isins(new_tickers, blacklist)
-
-    new_tickers = await load_from_db(client, isins=new_tickers, skip_empty=True)
-
     _drop_bad_predictions(new_tickers)
     _drop_bad_quotes(new_tickers)
 
@@ -115,6 +113,7 @@ async def search_tickers(
 
 async def _collect_isins(
     client: AsyncClient,
+    *,
     years: int,
     min_rating: float,
     with_floaters: bool,
@@ -199,5 +198,5 @@ def _drop_blacklisted_companies_and_isins(db: Db, blacklist: list[str]) -> None:
             del db[isin]
 
 
-def _to_smartlab_bool(v: bool) -> int:
+def _to_smartlab_bool(v: Any) -> int:
     return -1 if v else 0

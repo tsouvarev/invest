@@ -4,7 +4,7 @@ from funcy import concat
 from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
 
-from .utils import indicate_work
+from utils import indicate_work
 
 
 def load_isins_from_sheet(token: str, sheet_id: str, col_id: str) -> list[str]:

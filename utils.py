@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any
 
 import pytz
-from funcy import split
+from funcy import concat
 from httpx_retries import RetryTransport
 from httpxyz import AsyncClient, AsyncHTTPTransport, Response
 from lxml import etree
@@ -169,21 +169,16 @@ def now():
     return datetime.now(tz=pytz.timezone("Europe/Moscow"))
 
 
-def merge_dicts(one: dict, two: dict) -> dict:
-    overlapping, missing = split(lambda k: k in one, two)
+def merge_as_dicts(
+    one: dict[str, BaseModel], two: dict[str, BaseModel]
+) -> dict[str, dict]:
+    keys = set(concat(one, two))
 
-    for key in overlapping:
-        one[key] |= two[key]
+    res = {}
+    for key in keys:
+        res[key] = dict(one.get(key) or {}) | dict(two.get(key) or {})
 
-    return one | project(two, missing)
-
-
-def is_in(seq):
-    @wraps(is_in)
-    def inner(el):
-        return el in seq
-
-    return inner
+    return res
 
 
 def not_in(seq):
@@ -194,18 +189,15 @@ def not_in(seq):
     return inner
 
 
-def parse_date(*formats: str) -> Callable:
-    @wraps(parse_date)
-    def inner(v: str) -> date:
-        for format_ in formats:
-            try:
-                return date.strptime(v, format_)
-            except ValueError:
-                pass
+def parse_date(v: str, *formats: str) -> date:
+    for format_ in formats:
+        try:
+            return date.strptime(v, format_)
+        except ValueError:
+            pass
 
-        raise ValueError(v)
-
-    return inner
+    msg = f"{v=}"
+    raise ValueError(msg)
 
 
 def str_percent_to_float(v: str) -> float:
@@ -233,3 +225,11 @@ def localize_digits(v: float) -> str:
 def localize_percents(v: float) -> str:
     locale.setlocale(category=locale.LC_ALL, locale="nl_NL")
     return locale.localize(f"{v}%")
+
+
+def keys_dict(d: dict, keys: list[str], *, cast_to: BaseModel) -> dict:
+    res = {}
+    for key in keys:
+        value = d.get(key)
+        res[key] = value and cast_to(**dict(value))
+    return res

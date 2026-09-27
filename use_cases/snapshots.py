@@ -9,8 +9,10 @@ from pydantic import BaseModel
 from tabulate import tabulate
 from whatever import that
 
-from .tickers import BondType, Db, read_db_from_file
-from .utils import now, write_json
+from utils import now, write_json
+
+from .base import Db
+from .db import read_db_from_file
 
 type Value = int | float | str
 
@@ -74,8 +76,8 @@ def print_diff(db: Db, *snapshots: Db) -> None:
                 ticker = db[change.isin]
 
                 name = ticker.name
-                if ticker.type == BondType.FLOATER and field == "coupon":
-                    name = f"{name} ({BondType.humanize(ticker.type).lower()})"
+                if ticker.is_floater and field == "coupon":
+                    name = f"{name} (флоатер)"
 
                 table.append(
                     {

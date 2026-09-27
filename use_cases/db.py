@@ -1,0 +1,114 @@
+import json
+from enum import StrEnum, auto, nonmember
+
+from funcy import compact, project
+from httpxyz import AsyncClient
+from pydantic import TypeAdapter
+
+from clients import (
+    PredictionsUpdateMode,
+    TinkoffInfo,
+    get_cbr_info,
+    get_moex_info,
+    get_smartlab_info,
+    get_tinkoff_info,
+)
+from utils import indicate_work, keys_dict, merge_as_dicts, now, write_json
+
+from .base import Db, Ticker
+
+DB_PATH = "db.json"
+
+
+class ShowField(StrEnum):
+    NAME = auto()
+    ISIN = auto()
+    TYPE = auto()
+    GRADE = auto()
+    PROFITABILITY = auto()
+    COUPON = auto()
+    QUOTE = auto()
+    NOMINAL = auto()
+    MATURITY_DATE = auto()
+    SECTOR = auto()
+    PREDICTION = auto()
+    PREDICTION_DATE = auto()
+
+    default = nonmember(
+        [
+            NAME,
+            ISIN,
+            TYPE,
+            GRADE,
+            COUPON,
+            QUOTE,
+            NOMINAL,
+            MATURITY_DATE,
+            SECTOR,
+            PREDICTION,
+            PREDICTION_DATE,
+        ]
+    )
+
+
+async def load_base_db(client: AsyncClient, *, isins: list[str] | None = None) -> Db:
+    if isins is None:
+        isins = []
+
+    with indicate_work("Loading DB"):
+        db = read_db_from_file(DB_PATH)
+
+    if isins:
+        infos = await get_tinkoff_info(client, db, isins)
+        db = keys_dict(merge_as_dicts(db, infos), isins, cast_to=TinkoffInfo)
+
+    return project(compact(db), isins) if isins else db
+
+
+async def load_from_db(
+    client: AsyncClient,
+    *,
+    isins: list[str] | None = None,
+    update_predictions: PredictionsUpdateMode = PredictionsUpdateMode.OUTDATED,
+    skip_empty: bool = False,
+) -> Db:
+    if isins is None:
+        isins = []
+
+    with indicate_work("Loading DB"):
+        db = read_db_from_file(DB_PATH)
+
+    tinkoff_info = await get_tinkoff_info(client, db, isins)
+    moex_info = await get_moex_info(client, db, isins)
+    cbr_info = await get_cbr_info(
+        client, db, moex_info, isins, update_predictions=update_predictions
+    )
+    smartlab_info = await get_smartlab_info(client, db, isins)
+
+    for isin in isins:
+        if base_info := tinkoff_info[isin]:
+            infos = (
+                dict(base_info)
+                | dict(moex_info[isin])
+                | dict(cbr_info[isin])
+                | dict(smartlab_info[isin])
+            )
+            db[isin] = Ticker(ts=now(), isin=isin, **infos)
+        else:
+            db[isin] = None
+
+    _write_db_to_file(DB_PATH, db)
+
+    if skip_empty:
+        db = compact(db)
+
+    return project(db, isins) if isins else db
+
+
+def read_db_from_file(path: str) -> Db:
+    with open(path, encoding="utf-8") as f:
+        return TypeAdapter(Db).validate_python(json.load(f))
+
+
+def _write_db_to_file(path: str, data: Db) -> None:
+    write_json(path, data)
