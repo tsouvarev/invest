@@ -40,6 +40,7 @@ ignore = [
 "main.py" = [
   "boolean-default-value-positional-argument",
   "boolean-type-hint-positional-argument",
+  "boolean-type-hint-positional-argument",
   "constant-imported-as-non-constant",
   "function-call-in-default-argument",
   "too-many-arguments",
