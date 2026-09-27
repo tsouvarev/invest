@@ -112,6 +112,7 @@ async def search(
     min_rating: Grade = Grade.BB,
     exclude_duplicates: bool = True,
     show_better_duplicates: bool = True,
+    volatiles: bool = False,
     floaters: bool = False,
     structures: bool = False,
     mortgage: bool = False,
@@ -145,9 +146,9 @@ async def search(
             min_rating=min_rating,
             exclude_duplicates=exclude_duplicates,
             show_better_duplicates=show_better_duplicates,
-            with_floaters=floaters,
-            with_structures=structures,
-            with_mortgage=mortgage,
+            with_floaters=volatiles or floaters,
+            with_structures=volatiles or structures,
+            with_mortgage=volatiles or mortgage,
         )
         print_model_list(data, fields)
 
