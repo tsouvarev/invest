@@ -8,6 +8,7 @@ from tabulate import tabulate
 from use_cases import (
     Db,
     Grade,
+    InnsUpdateMode,
     PredictionsUpdateMode,
     ShowField,
     find_duplicates,
@@ -48,6 +49,7 @@ async def show(
     sheet: Annotated[str | None, Option(envvar="SHEET_ID")] = None,
     diff: bool = True,
     update_predictions: PredictionsUpdateMode = PredictionsUpdateMode.OUTDATED,
+    update_inns: InnsUpdateMode = InnsUpdateMode.MISSING,
     fields: list[ShowField] = ShowField.default,
     token: Annotated[str | None, Option(envvar="GOOGLE_SHEETS_TOKEN")] = None,
     column: Annotated[str | None, Option(envvar="SHEET_COLUMN")] = None,
@@ -64,7 +66,10 @@ async def show(
 
     async with async_client:
         data: Db = await load_from_db(
-            async_client, isins=isins, update_predictions=update_predictions
+            async_client,
+            isins=isins,
+            update_predictions=update_predictions,
+            update_inns=update_inns,
         )
         tickers = list(data.values())
         print_model_list(tickers, fields)

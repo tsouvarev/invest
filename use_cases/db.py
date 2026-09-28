@@ -6,6 +6,7 @@ from httpxyz import AsyncClient
 from pydantic import TypeAdapter
 
 from clients import (
+    InnsUpdateMode,
     PredictionsUpdateMode,
     TinkoffInfo,
     get_cbr_info,
@@ -70,6 +71,7 @@ async def load_from_db(
     *,
     isins: list[str] | None = None,
     update_predictions: PredictionsUpdateMode = PredictionsUpdateMode.OUTDATED,
+    update_inns: InnsUpdateMode = InnsUpdateMode.MISSING,
     skip_empty: bool = False,
 ) -> Db:
     if isins is None:
@@ -79,7 +81,7 @@ async def load_from_db(
         db = read_db_from_file(DB_PATH)
 
     tinkoff_info = await get_tinkoff_info(client, db, isins)
-    moex_info = await get_moex_info(client, db, isins)
+    moex_info = await get_moex_info(client, db, isins, update_inns=update_inns)
     cbr_info = await get_cbr_info(
         client, db, moex_info, isins, update_predictions=update_predictions
     )

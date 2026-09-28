@@ -1,5 +1,6 @@
 from .base import Db, Grade
 from .db import (
+    InnsUpdateMode,
     PredictionsUpdateMode,
     ShowField,
     load_base_db,

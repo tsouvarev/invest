@@ -1,9 +1,10 @@
 import csv
 from asyncio import Semaphore
+from enum import StrEnum, auto
 from io import StringIO
 
 from asyncstdlib import zip as azip
-from funcy import autocurry, lsplit
+from funcy import lsplit
 from pydantic import BaseModel, ConfigDict
 
 from utils import Request, get_batch
@@ -18,20 +19,32 @@ CONFIG = {
 }
 
 
+class InnsUpdateMode(StrEnum):
+    ALL = auto()
+    MISSING = auto()
+
+
 class MoexInfo(BaseModel):
     inn: str
 
     model_config = ConfigDict(extra="ignore")
 
 
-async def get_moex_info(client, db, isins) -> dict[str, MoexInfo]:
-    cached_isins, missing_inns = lsplit(_get_inn(db), isins)
+async def get_moex_info(
+    client, db, isins, update_inns: InnsUpdateMode
+) -> dict[str, MoexInfo]:
+    if update_inns == InnsUpdateMode.ALL:
+        missing_inns, cached_isins = isins, []
+    else:
+        missing_inns, cached_isins = lsplit(_needs_update(db), isins)
+
     pages = await _get_pages(client, missing_inns)
     missing_infos = {
         isin: _parse_page(response)
         async for isin, response in azip(missing_inns, pages)
     }
-    cached_infos = {isin: _get_inn(db, isin) for isin in cached_isins}
+
+    cached_infos = {isin: MoexInfo(inn=db[isin].inn) for isin in cached_isins}
     return missing_infos | cached_infos
 
 
@@ -62,7 +75,5 @@ def _parse_page(response) -> MoexInfo:
         return MoexInfo(inn=next(reader)["INN"])
 
 
-@autocurry
-def _get_inn(db, isin):
-    ticker = db.get(isin)
-    return ticker and MoexInfo(inn=ticker.inn)
+def _needs_update(db: dict, isin: str) -> bool:
+    return not (isin in db and db[isin].inn)
