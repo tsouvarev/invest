@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Any
 
 import pytz
-from funcy import concat
+from funcy import concat, lmap
 from httpx_retries import RetryTransport
 from httpxyz import AsyncClient, AsyncHTTPTransport, Response
 from lxml import etree
@@ -172,8 +172,14 @@ def print_model_list[T](data: list[T], fields: list[str] | None = None) -> None:
         print("No data")
         return
 
-    dumped = [map(obj.model_dump(include=fields).get, fields) for obj in data]
-    print(tabulate(dumped, headers=fields, tablefmt="tsv"))
+    if fields:
+        headers = fields
+        dumped = [lmap(obj.model_dump(include=fields).get, fields) for obj in data]
+    else:
+        headers = "keys"
+        dumped = TypeAdapter(list[T]).dump_python(data)
+
+    print(tabulate(dumped, headers=headers, tablefmt="tsv"))
 
 
 def get_model_fields(m: BaseModel) -> list[str]:
