@@ -48,6 +48,7 @@ class ShowField(StrEnum):
             PREDICTION_DATE,
         ]
     )
+    base = nonmember([NAME])
 
 
 async def load_base_db(client: AsyncClient, *, isins: list[str] | None = None) -> Db:

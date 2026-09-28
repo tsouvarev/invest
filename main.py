@@ -107,7 +107,7 @@ async def duplicates(
     file: Path | None = None,
     isin: list[str] | None = None,
     sheet: Annotated[str | None, Option(envvar="SHEET_ID")] = None,
-    fields: list[ShowField] = ShowField.default,
+    fields: list[ShowField] = ShowField.base,
     token: Annotated[str | None, Option(envvar="GOOGLE_SHEETS_TOKEN")] = None,
     column: Annotated[str | None, Option(envvar="SHEET_COLUMN")] = None,
 ) -> None:
