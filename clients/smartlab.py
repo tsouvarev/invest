@@ -201,7 +201,7 @@ async def get_smartlab_info(
     return infos | keys_dict(db, cached_isins, cast_to=SmartlabInfo)
 
 
-async def _get_pages(client, isins):
+async def _get_pages(client, isins):  # ruff: ignore[unused-async]
     config = CONFIG["smartlab"]
 
     sem = Semaphore(config["concurrency"])
