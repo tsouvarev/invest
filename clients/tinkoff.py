@@ -56,7 +56,7 @@ async def get_tinkoff_info(client: AsyncClient, db: dict, isins: list[str]) -> d
     return missing_infos | keys_dict(db, cached_isins, cast_to=TinkoffInfo)
 
 
-async def _get_pages(client, isins):
+async def _get_pages(client, isins):  # ruff: ignore[unused-async]
     config = CONFIG["tinkoff"]
     caption = "Loading base info from tinkoff"
     sem = Semaphore(config["concurrency"])

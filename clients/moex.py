@@ -48,7 +48,7 @@ async def get_moex_info(
     return missing_infos | cached_infos
 
 
-async def _get_pages(client, isins):
+async def _get_pages(client, isins):  # ruff: ignore[unused-async]
     config = CONFIG["moex"]
     sem = Semaphore(config["concurrency"])
 
