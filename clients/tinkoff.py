@@ -1,12 +1,11 @@
 import re
 from asyncio import Semaphore
-from functools import cached_property
 from typing import TypedDict
 
 from asyncstdlib import zip as azip
 from funcy import lsplit
 from httpxyz import AsyncClient
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, computed_field
 
 from utils import (
     Request,
@@ -36,9 +35,13 @@ class TinkoffInfo(BaseModel):
 
     model_config = ConfigDict(extra="ignore")
 
-    @cached_property
+    @property
     def _company(self):
         return self.company.lower()
+
+    @computed_field
+    def name(self) -> str:
+        return f"{self.company} {self.series}"
 
 
 class ParsedName(TypedDict):
