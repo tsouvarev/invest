@@ -131,7 +131,7 @@ pycharm
 .pycharm_helpers
 .vscode
 
-blacklist.txt
+blacklist.json
 seen.txt
 tickers.txt
 db.json

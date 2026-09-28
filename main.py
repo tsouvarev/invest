@@ -7,18 +7,23 @@ from tabulate import tabulate
 
 from use_cases import (
     Db,
+    EntryType,
     Grade,
     InnsUpdateMode,
     PredictionsUpdateMode,
     ShowField,
+    add_to_blacklist,
     find_duplicates,
+    get_blacklist,
     get_last_snapshot,
     load_base_db,
     load_from_db,
     load_isins_from_sheet,
     load_snapshot,
+    print_blacklist,
     print_diff,
     print_ratings,
+    remove_from_blacklist,
     search_tickers,
     write_snapshot,
 )
@@ -41,6 +46,9 @@ app.add_typer(snaps_app, name="snaps")
 
 sheets_app = AsyncTyper()
 app.add_typer(sheets_app, name="sheets")
+
+blacklist_app = AsyncTyper()
+app.add_typer(blacklist_app, name="blacklist")
 
 
 @bonds_app.command()
@@ -122,8 +130,6 @@ async def duplicates(
 async def search(
     used: Path | None = None,
     sheet: Annotated[str | None, Option(envvar="SHEET_ID")] = None,
-    blacklist_file: Path | None = None,
-    blacklist: Annotated[str | None, Option(envvar="BLACKLIST")] = None,
     min_yield: float = 16,
     years: float = 1,
     min_rating: Grade = Grade.BB,
@@ -145,19 +151,13 @@ async def search(
         msg = "no source"
         raise ValueError(msg)
 
-    if blacklist_file:
-        blacklisted = read_file_or_none(blacklist)
-    elif blacklist:
-        blacklisted = blacklist.split(",")
-    else:
-        msg = "no source"
-        raise ValueError(msg)
+    blacklisted = get_blacklist()
 
     async with async_client:
         data = await search_tickers(
             async_client,
             used_isins=used_isins,
-            blacklist=[v.lower() for v in blacklisted],
+            blacklist=blacklisted,
             min_yield=min_yield,
             years=years,
             min_rating=min_rating,
@@ -206,6 +206,21 @@ async def diff_snaps(date: list[datetime]) -> None:
     async with async_client:
         db = await load_base_db(async_client)
         print_diff(db, *map(load_snapshot, date))
+
+
+@blacklist_app.command("get")
+def print_bl() -> None:
+    print_blacklist()
+
+
+@blacklist_app.command("add")
+def add_to_bl(type: EntryType, value: list[str]) -> None:
+    add_to_blacklist(" ".join(value), type)
+
+
+@blacklist_app.command("del")
+def del_from_bl(value: list[str]) -> None:
+    remove_from_blacklist(" ".join(value))
 
 
 if __name__ == "__main__":

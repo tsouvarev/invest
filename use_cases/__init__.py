@@ -1,4 +1,11 @@
 from .base import Db, Grade
+from .blacklist import (
+    EntryType,
+    add_to_blacklist,
+    get_blacklist,
+    print_blacklist,
+    remove_from_blacklist,
+)
 from .db import (
     InnsUpdateMode,
     PredictionsUpdateMode,
