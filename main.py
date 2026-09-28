@@ -215,12 +215,15 @@ def print_bl() -> None:
 
 @blacklist_app.command("add")
 def add_to_bl(type: EntryType, value: list[str]) -> None:
-    add_to_blacklist(" ".join(value), type)
+    values = value if type == EntryType.ISIN else [" ".join(value)]
+
+    add_to_blacklist(type, *values)
 
 
 @blacklist_app.command("del")
-def del_from_bl(value: list[str]) -> None:
-    remove_from_blacklist(" ".join(value))
+def del_from_bl(type: EntryType, value: list[str]) -> None:
+    values = value if type == EntryType.ISIN else [" ".join(value)]
+    remove_from_blacklist(*values)
 
 
 if __name__ == "__main__":

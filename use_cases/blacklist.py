@@ -30,17 +30,18 @@ def print_blacklist() -> None:
         print_model_list(blacklist)
 
 
-def add_to_blacklist(value: str, entry_type: EntryType) -> None:
+def add_to_blacklist(entry_type: EntryType, *values: str) -> None:
     blacklist = get_blacklist()
-    blacklist.append(Entry(value=value, type=entry_type))
+    for value in values:
+        blacklist.append(Entry(value=value, type=entry_type))
 
     with indicate_work("Writing DB"):
         write_json(DB_PATH, blacklist)
 
 
-def remove_from_blacklist(value: str) -> None:
+def remove_from_blacklist(*values: str) -> None:
     blacklist = get_blacklist()
-    blacklist = remove(lambda entry: entry.value == value, blacklist)
+    blacklist = remove(lambda entry: entry.value in values, blacklist)
 
     with indicate_work("Writing DB"):
         write_json(DB_PATH, blacklist)
