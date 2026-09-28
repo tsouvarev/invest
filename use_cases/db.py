@@ -1,9 +1,7 @@
-import json
 from enum import StrEnum, auto, nonmember
 
 from funcy import compact, project
 from httpxyz import AsyncClient
-from pydantic import TypeAdapter
 
 from clients import (
     InnsUpdateMode,
@@ -14,7 +12,7 @@ from clients import (
     get_smartlab_info,
     get_tinkoff_info,
 )
-from utils import indicate_work, keys_dict, merge_as_dicts, now, write_json
+from utils import indicate_work, keys_dict, merge_as_dicts, now, read_json, write_json
 
 from .base import Db, Ticker
 
@@ -57,7 +55,7 @@ async def load_base_db(client: AsyncClient, *, isins: list[str] | None = None) -
         isins = []
 
     with indicate_work("Loading DB"):
-        db = read_db_from_file(DB_PATH)
+        db = read_json(DB_PATH, cast_to=Db, initial={})
 
     if isins:
         infos = await get_tinkoff_info(client, db, isins)
@@ -78,7 +76,7 @@ async def load_from_db(
         isins = []
 
     with indicate_work("Loading DB"):
-        db = read_db_from_file(DB_PATH)
+        db = read_json(DB_PATH, cast_to=Db, initial={})
 
     tinkoff_info = await get_tinkoff_info(client, db, isins)
     moex_info = await get_moex_info(client, db, isins, update_inns=update_inns)
@@ -105,11 +103,6 @@ async def load_from_db(
         db = compact(db)
 
     return project(db, isins) if isins else db
-
-
-def read_db_from_file(path: str) -> Db:
-    with open(path, encoding="utf-8") as f:
-        return TypeAdapter(Db).validate_python(json.load(f))
 
 
 def _write_db_to_file(path: str, data: Db) -> None:

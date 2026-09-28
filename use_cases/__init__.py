@@ -5,7 +5,6 @@ from .db import (
     ShowField,
     load_base_db,
     load_from_db,
-    read_db_from_file,
 )
 from .duplicates import find_duplicates
 from .ratings import print_ratings
