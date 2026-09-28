@@ -167,17 +167,24 @@ def read_json(path: str, cast_to: type, initial: Any = None) -> dict:
     return initial
 
 
-def print_model_list[T](data: list[T], fields: list[str] | None = None) -> None:
+def print_model_list[T](
+    data: list[T], fields: list[str] | None = None, context: dict | None = None
+) -> None:
     if not data:
         print("No data")
         return
 
+    context = context or {}
+
     if fields:
         headers = fields
-        dumped = [lmap(obj.model_dump(include=fields).get, fields) for obj in data]
+        dumped = [
+            lmap(obj.model_dump(include=fields, context=context).get, fields)
+            for obj in data
+        ]
     else:
         headers = "keys"
-        dumped = TypeAdapter(list[T]).dump_python(data)
+        dumped = TypeAdapter(list[T]).dump_python(data, context=context)
 
     print(tabulate(dumped, headers=headers, tablefmt="tsv"))
 

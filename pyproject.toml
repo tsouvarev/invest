@@ -12,6 +12,7 @@ dependencies = [
   "google-auth-oauthlib",
   "httpx-retries",
   "httpxyz",
+  "humanize>=4.16.0",
   "lxml",
   "pydantic",
   "pytz>=2026.3.post1",
