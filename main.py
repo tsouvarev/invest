@@ -18,6 +18,7 @@ from use_cases import (
     load_isins_from_sheet,
     load_snapshot,
     print_diff,
+    print_ratings,
     search_tickers,
     write_snapshot,
 )
@@ -83,6 +84,14 @@ async def show(
             last_snapshot = get_last_snapshot()
             print_diff(data, last_snapshot, data)
             write_snapshot(data)
+
+
+@bonds_app.command()
+async def ratings(isin: str, with_bond_actions: bool = False) -> None:
+    async with async_client:
+        await print_ratings(
+            async_client, isin=isin, with_bond_actions=with_bond_actions
+        )
 
 
 @bonds_app.command()

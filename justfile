@@ -30,6 +30,9 @@ show *args:
 dupes:
     {{ RUN_INVEST }} bonds duplicates
 
+ratings *args:
+    {{ RUN_INVEST }} bonds ratings {{ args }}
+
 diff *args:
     {{ RUN_INVEST }} snaps diff {{ args }}
 
