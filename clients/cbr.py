@@ -80,24 +80,29 @@ async def get_cbr_info(
         missing_isins, cached_isins = isins, []
 
     infos = {}
-    csrf_token = await _get_cbr_csrf(client)
+    csrf_token = await get_cbr_csrf(client)
 
     caption = "Loading ratings from CBR"
     for isin in tqdm(missing_isins, caption):
         ticker = inns_db[isin]
-        items = await _get_cbr_items(client, csrf_token, ticker.inn)
-        items = sorted(items, key=that.release_date, reverse=True)
-
-        company_items = [
-            item
-            for item in items
-            if not has_prefixes(item.object_type, ("TBND", "TMNB"))
-        ]
+        items = await get_predictions(client, csrf_token=csrf_token, inn=ticker.inn)
+        company_items = get_company_predictions(items)
         isin_items = [item for item in items if item.isin == isin]
 
         infos[isin] = _get_last_prediction(company_items or isin_items)
 
     return infos | keys_dict(db, cached_isins, cast_to=CbrInfo)
+
+
+async def get_predictions(client, *, csrf_token, inn: str) -> list[CbrItem]:
+    items = await _get_cbr_items(client, csrf_token, inn)
+    return sorted(items, key=that.release_date, reverse=True)
+
+
+def get_company_predictions(items: list[CbrItem]) -> list[CbrItem]:
+    return [
+        item for item in items if not has_prefixes(item.object_type, ("TBND", "TMNB"))
+    ]
 
 
 def _get_last_prediction(predictions: list[CbrItem]) -> CbrInfo:
@@ -177,7 +182,7 @@ async def _get_cbr_items(client: AsyncClient, csrf_token, inn: str) -> list[CbrD
     return predictions
 
 
-async def _get_cbr_csrf(client):
+async def get_cbr_csrf(client):
     with indicate_work("Getting CSRF token for CBR"):
         response = await client.post(
             CONFIG["cbr"]["url"],
