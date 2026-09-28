@@ -10,6 +10,7 @@ from whatever import that
 from utils import indicate_work, select_many_from_response
 
 from .base import Db, Prediction, Ticker
+from .blacklist import Blacklist, is_in_blacklist
 from .db import PredictionsUpdateMode, load_base_db, load_from_db
 
 
@@ -63,7 +64,7 @@ async def search_tickers(
     client,
     *,
     used_isins: list[str],
-    blacklist: list[str],
+    blacklist: Blacklist,
     min_yield: float,
     years: int,
     min_rating: int,
@@ -192,9 +193,9 @@ def _drop_too_little_yield(db: Db, min_yield: float) -> None:
             del db[isin]
 
 
-def _drop_blacklisted_companies_and_isins(db: Db, blacklist: list[str]) -> None:
+def _drop_blacklisted_companies_and_isins(db: Db, blacklist: Blacklist) -> None:
     for isin, ticker in list(db.items()):
-        if ticker._company in blacklist or ticker._isin in blacklist:
+        if is_in_blacklist(blacklist, ticker._company, ticker._isin):
             del db[isin]
 
 

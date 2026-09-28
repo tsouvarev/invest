@@ -41,3 +41,6 @@ update *args:
 
 search *args:
     {{ RUN_INVEST }} bonds search {{ args }}
+
+bl *args:
+    {{ RUN_INVEST }} blacklist {{ args }}
