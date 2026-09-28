@@ -48,6 +48,7 @@ async def show(
     isin: list[str] | None = None,
     sheet: Annotated[str | None, Option(envvar="SHEET_ID")] = None,
     diff: bool = True,
+    update: bool = False,
     update_predictions: PredictionsUpdateMode = PredictionsUpdateMode.OUTDATED,
     update_inns: InnsUpdateMode = InnsUpdateMode.MISSING,
     fields: list[ShowField] = ShowField.default,
@@ -63,6 +64,10 @@ async def show(
     else:
         msg = "no source"
         raise ValueError(msg)
+
+    if update:
+        update_predictions = PredictionsUpdateMode.ALL
+        update_inns = InnsUpdateMode.ALL
 
     async with async_client:
         data: Db = await load_from_db(
