@@ -4,10 +4,10 @@ from enum import StrEnum, auto
 from io import StringIO
 
 from asyncstdlib import zip as azip
-from funcy import lsplit
+from funcy import curry, lsplit
 from pydantic import BaseModel, ConfigDict
 
-from utils import Request, get_batch
+from utils import Request, get_batch, keys_dict
 
 CONFIG = {
     "moex": {
@@ -43,9 +43,7 @@ async def get_moex_info(
         isin: _parse_page(response)
         async for isin, response in azip(missing_inns, pages)
     }
-
-    cached_infos = {isin: MoexInfo(inn=db[isin].inn) for isin in cached_isins}
-    return missing_infos | cached_infos
+    return missing_infos | keys_dict(db, cached_isins, cast_to=MoexInfo)
 
 
 async def _get_pages(client, isins):  # ruff: ignore[unused-async]
@@ -75,5 +73,10 @@ def _parse_page(response) -> MoexInfo:
         return MoexInfo(inn=next(reader)["INN"])
 
 
+@curry
 def _needs_update(db: dict, isin: str) -> bool:
-    return not (isin in db and db[isin].inn)
+    # update only if there is no entry or entry contains no INN;
+    # if entry is None, then skip update
+    if isin not in db:
+        return True
+    return not (db[isin] is None or db[isin].inn)

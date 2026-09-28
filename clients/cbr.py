@@ -85,6 +85,9 @@ async def get_cbr_info(
     caption = "Loading ratings from CBR"
     for isin in tqdm(missing_isins, caption):
         ticker = inns_db[isin]
+        if not ticker:
+            continue
+
         items = await get_predictions(client, csrf_token=csrf_token, inn=ticker.inn)
         company_items = get_company_predictions(items)
         isin_items = [item for item in items if item.isin == isin]
@@ -194,5 +197,12 @@ async def get_cbr_csrf(client):
 
 @autocurry
 def _needs_update(db: dict, isin: list[str]) -> bool:
-    ticker = db.get(isin)
-    return ticker is None or not ticker.prediction or ticker.has_outdated_prediction
+    # skip update only if entry is None or is outdated
+    if isin not in db:
+        return True
+
+    ticker = db[isin]
+    if ticker is None:
+        return False
+
+    return not ticker.prediction or ticker.has_outdated_prediction
