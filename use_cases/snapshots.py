@@ -9,10 +9,9 @@ from pydantic import BaseModel
 from tabulate import tabulate
 from whatever import that
 
-from utils import now, write_json
+from utils import now, read_json, write_json
 
 from .base import Db
-from .db import read_db_from_file
 
 type Value = int | float | str
 
@@ -107,7 +106,7 @@ def load_snapshot(dt: datetime) -> dict[str, Db]:
 
     path = Path("snapshots") / dt.date().isoformat()
     for filepath in path.iterdir():
-        snapshot |= read_db_from_file(filepath)
+        snapshot |= read_json(filepath, cast_to=Db)
 
     return snapshot
 

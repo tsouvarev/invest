@@ -1,3 +1,4 @@
+import json
 import locale
 import os
 import ssl
@@ -150,6 +151,20 @@ def write_json[T](path: str, data: T) -> None:
         data, indent=2, ensure_ascii=True, fallback=encoder_fallback
     )
     Path(path).write_bytes(serialized)
+
+
+def read_json(path: str, cast_to: type, initial: Any = None) -> dict:
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    if path.exists():
+        with path.open() as f:
+            return TypeAdapter(cast_to).validate_python(json.load(f))
+
+    if initial is not None:
+        path.write_text(json.dumps(initial))
+
+    return initial
 
 
 def print_model_list[T](data: list[T], fields: list[str] | None = None) -> None:
