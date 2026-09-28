@@ -209,8 +209,9 @@ async def diff_snaps(date: list[datetime]) -> None:
 
 
 @blacklist_app.command("get")
-def print_bl() -> None:
-    print_blacklist()
+async def print_bl() -> None:
+    async with async_client:
+        await print_blacklist(async_client)
 
 
 @blacklist_app.command("add")
