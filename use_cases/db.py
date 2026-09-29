@@ -12,7 +12,15 @@ from clients import (
     get_smartlab_info,
     get_tinkoff_info,
 )
-from utils import indicate_work, keys_dict, merge_as_dicts, now, read_json, write_json
+from utils import (
+    indicate_work,
+    keys_dict,
+    merge_as_dicts,
+    merge_dicts,
+    now,
+    read_json,
+    write_json,
+)
 
 from .base import Db, Ticker
 
@@ -87,14 +95,14 @@ async def load_from_db(
     smartlab_info = await get_smartlab_info(client, db, isins)
 
     for isin in isins:
-        if base_info := tinkoff_info[isin]:
-            infos = (
-                dict(base_info)
-                | dict(moex_info[isin])
-                | dict(cbr_info[isin])
-                | dict(smartlab_info[isin])
-            )
-            db[isin] = Ticker(ts=now(), isin=isin, **infos)
+        infos = [
+            tinkoff_info[isin],
+            moex_info[isin],
+            cbr_info[isin],
+            smartlab_info[isin],
+        ]
+        if all(infos):
+            db[isin] = Ticker(ts=now(), isin=isin, **merge_dicts(*infos))
         else:
             db[isin] = None
 
