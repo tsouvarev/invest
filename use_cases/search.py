@@ -31,7 +31,12 @@ async def search_tickers(
         with_mortgage=with_mortgage,
     )
 
-    new_tickers = await load_from_db(client, isins=isins, skip_empty=True)
+    new_tickers = await load_from_db(
+        client,
+        isins=isins,
+        skip_empty=True,
+        update_predictions=PredictionsUpdateMode.SKIP,
+    )
 
     if exclude_duplicates:
         _drop_duplicated_companies(new_tickers)
@@ -41,19 +46,7 @@ async def search_tickers(
     _drop_bad_quotes(new_tickers)
 
     if show_better_duplicates:
-        used_db = await load_base_db(client, isins=used_isins)
-        conflict_companies = {ticker._company for ticker in new_tickers.values()}
-        conflict_used_tickers = [
-            isin
-            for isin, ticker in used_db.items()
-            if ticker._company in conflict_companies
-        ]
-        used_tickers = await load_from_db(
-            client,
-            isins=conflict_used_tickers,
-            update_predictions=PredictionsUpdateMode.SKIP,
-        )
-        _drop_worse_duplicates(new_tickers, used_tickers)
+        await _drop_worse_duplicates(client, new_tickers, used_isins)
 
     _drop_too_little_yield(new_tickers, min_yield)
 
@@ -80,15 +73,28 @@ def _drop_duplicated_companies(db: Db) -> None:
         seen_companies.add(ticker._company)
 
 
-def _drop_worse_duplicates(new_db: Db, used_db: Db) -> None:
-    current_coupons = walk_values(
-        lambda tickers: max(map(that.coupon, tickers)),
-        group_by(that._company, used_db.values()),
+async def _drop_worse_duplicates(
+    client, new_tickers: Db, used_isins: list[str]
+) -> None:
+    used_db = await load_base_db(client, isins=used_isins)
+    new_companies = {ticker._company for ticker in new_tickers.values()}
+    conflict_used_isins = [
+        isin for isin, ticker in used_db.items() if ticker._company in new_companies
+    ]
+    conflicted_used_tickers = await load_from_db(
+        client,
+        isins=conflict_used_isins,
+        update_predictions=PredictionsUpdateMode.SKIP,
     )
 
-    for isin, ticker in list(new_db.items()):
+    current_coupons = walk_values(
+        lambda tickers: max(map(that.coupon, tickers)),
+        group_by(that._company, conflicted_used_tickers.values()),
+    )
+
+    for isin, ticker in list(new_tickers.items()):
         if ticker.coupon <= current_coupons.get(ticker._company, 0):
-            del new_db[isin]
+            del new_tickers[isin]
 
 
 def _drop_too_little_yield(db: Db, min_yield: float) -> None:
