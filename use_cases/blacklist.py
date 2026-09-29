@@ -37,6 +37,8 @@ class Entry(BaseModel):
         self, handler: SerializerFunctionWrapHandler, info: FieldSerializationInfo
     ) -> dict:
         res = handler(self)
+        if info.mode_is_json():
+            return res
 
         if self.is_isin and info.context:
             ticker = info.context["db"].get(self.value)
