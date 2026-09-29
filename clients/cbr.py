@@ -79,6 +79,9 @@ async def get_cbr_info(
     else:
         missing_isins, cached_isins = isins, []
 
+    if not missing_isins:
+        return keys_dict(db, cached_isins, cast_to=CbrInfo)
+
     infos = {}
     csrf_token = await get_cbr_csrf(client)
 
