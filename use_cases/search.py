@@ -14,6 +14,7 @@ async def search_tickers(
     used_isins: list[str],
     blacklist: Blacklist,
     min_yield: float,
+    min_floater_yield: float,
     years: int,
     min_rating: int,
     exclude_duplicates: bool,
@@ -48,7 +49,7 @@ async def search_tickers(
     if show_better_duplicates:
         await _drop_worse_duplicates(client, new_tickers, used_isins)
 
-    _drop_too_little_yield(new_tickers, min_yield)
+    _drop_too_little_yield(new_tickers, min_yield, min_floater_yield)
 
     return sorted(new_tickers.values(), key=that.coupon, reverse=True)
 
@@ -97,9 +98,14 @@ async def _drop_worse_duplicates(
             del new_tickers[isin]
 
 
-def _drop_too_little_yield(db: Db, min_yield: float) -> None:
+def _drop_too_little_yield(db: Db, min_yield: float, min_floater_yield: float) -> None:
     for isin, ticker in list(db.items()):
-        if ticker.coupon <= min_yield:
+        too_little_floater_yield = (
+            ticker.is_floater and ticker.coupon <= min_floater_yield
+        )
+        too_little_yield = ticker.coupon <= min_yield
+
+        if too_little_floater_yield or too_little_yield:
             del db[isin]
 
 
