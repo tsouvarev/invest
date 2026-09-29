@@ -36,7 +36,13 @@ class TinkoffInfo(BaseModel):
 
     @property
     def _company(self):
-        return self.company.lower()
+        company = self.company.lower()
+
+        redundant_prefixes = ["гк ", "группа "]
+        for prefix in redundant_prefixes:
+            company = company.removeprefix(prefix)
+
+        return company
 
     @computed_field
     def name(self) -> str:

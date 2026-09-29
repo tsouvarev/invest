@@ -105,8 +105,14 @@ class Ticker(BaseModel):
         return f"{self.company} {self.series}"
 
     @cached_property
-    def _company(self):
-        return self.company.lower()
+    def _company(self) -> str:
+        company = self.company.lower()
+
+        redundant_prefixes = ["гк ", "группа "]
+        for prefix in redundant_prefixes:
+            company = company.removeprefix(prefix)
+
+        return company
 
     @cached_property
     def _isin(self):
