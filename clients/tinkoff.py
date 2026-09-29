@@ -10,11 +10,10 @@ from pydantic import BaseModel, ConfigDict, computed_field
 from utils import (
     Request,
     get_batch,
-    get_text_from_node,
     keys_dict,
     not_in,
     now,
-    select_many_from_response,
+    select_one_from_response,
 )
 
 CONFIG = {
@@ -22,8 +21,8 @@ CONFIG = {
         "url": "https://www.tbank.ru/invest/bonds/{isin}/",
         "concurrency": 15,
         "selectors": {
-            "isin": ".SecurityHeader__ticker_j7fZW",
-            "name": ".SecurityHeader__showName_iw6qC",
+            "isin": "span[class^=SecurityHeader__ticker]",
+            "name": "span[class^=SecurityHeader__showName]",
         },
     },
 }
@@ -74,9 +73,8 @@ def _parse_info_page(response) -> TinkoffInfo:
     if not response.is_success:
         return None
 
-    nodes = select_many_from_response(response, [selectors["isin"], selectors["name"]])
-    isin, name = map(get_text_from_node, nodes[0])
-    return TinkoffInfo(ts=now(), isin=isin, **_parse_name(name))
+    name = select_one_from_response(response, selectors["name"])
+    return TinkoffInfo(**_parse_name(name))
 
 
 def _parse_name(name: str) -> ParsedName:
