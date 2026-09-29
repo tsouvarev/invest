@@ -12,7 +12,6 @@ from utils import (
     get_batch,
     keys_dict,
     not_in,
-    now,
     select_one_from_response,
 )
 
