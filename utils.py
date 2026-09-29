@@ -7,7 +7,8 @@ from collections.abc import AsyncIterator, Callable, Generator
 from contextlib import contextmanager
 from dataclasses import asdict, fields, is_dataclass
 from datetime import date, datetime
-from functools import wraps
+from functools import reduce, wraps
+from operator import or_
 from pathlib import Path
 from typing import Any
 
@@ -204,9 +205,13 @@ def merge_as_dicts(
 
     res = {}
     for key in keys:
-        res[key] = dict(one.get(key) or {}) | dict(two.get(key) or {})
+        res[key] = merge_dicts(one.get(key) or {}, two.get(key) or {})
 
     return res
+
+
+def merge_dicts(*dicts: dict) -> dict:
+    return reduce(or_, map(dict, dicts), {})
 
 
 def not_in(seq):
