@@ -1,63 +1,11 @@
-from collections.abc import Iterator
-from enum import StrEnum, auto
-from itertools import count
-from typing import Any
-
 from funcy import group_by, walk_values
-from httpxyz import AsyncClient
 from whatever import that
 
-from utils import indicate_work, select_many_from_response
+from clients import search_isins
 
 from .base import Db, Prediction, Ticker
 from .blacklist import Blacklist, is_in_blacklist
 from .db import PredictionsUpdateMode, load_base_db, load_from_db
-
-
-class SearchField(StrEnum):
-    NAME = auto()
-    ISIN = auto()
-    GRADE = auto()
-    URL = auto()
-    COUPON = auto()
-    CURRENT_COUPON = auto()
-    PROFITABILITY = auto()
-    QUOTE = auto()
-    NOMINAL = auto()
-    MATURITY_DATE = auto()
-    SECTOR = auto()
-
-
-SEARCH_CONFIG = {
-    "corporate": {
-        "url": "https://smart-lab.ru/q/bonds/order_by_year_yield/desc/page{}/",
-        "pagination": True,
-        "selectors": {
-            SearchField.URL: "main tr > td.trades-table__name > a",
-            SearchField.COUPON: "main table tr td:nth-child(6)",
-            SearchField.PROFITABILITY: "main table tr td:nth-child(5)",
-            SearchField.GRADE: "main table tr td:nth-child(8)",
-        },
-    },
-    "federal": {
-        "url": "https://smart-lab.ru/q/ofz/order_by_year_yield/desc/",
-        "pagination": False,
-        "selectors": {
-            SearchField.URL: "main tr > td.trades-table__name > a",
-            SearchField.COUPON: "main table tr td:nth-child(8)",
-            SearchField.PROFITABILITY: "main table tr td:nth-child(6)",
-        },
-    },
-    "subfederal": {
-        "url": "https://smart-lab.ru/q/subfed/order_by_year_yield/desc/page{}/",
-        "pagination": False,
-        "selectors": {
-            SearchField.URL: "main tr > td.trades-table__name > a",
-            SearchField.COUPON: "main table tr td:nth-child(7)",
-            SearchField.PROFITABILITY: "main table tr td:nth-child(6)",
-        },
-    },
-}
 
 
 async def search_tickers(
@@ -74,7 +22,7 @@ async def search_tickers(
     with_structures: bool,
     with_mortgage: bool,
 ) -> list[Ticker]:
-    isins = await _collect_isins(
+    isins = await search_isins(
         client,
         years=years,
         min_rating=min_rating,
@@ -110,50 +58,6 @@ async def search_tickers(
     _drop_too_little_yield(new_tickers, min_yield)
 
     return sorted(new_tickers.values(), key=that.coupon, reverse=True)
-
-
-async def _collect_isins(
-    client: AsyncClient,
-    *,
-    years: int,
-    min_rating: float,
-    with_floaters: bool,
-    with_structures: bool,
-    with_mortgage: bool,
-) -> list[str]:
-    isins = []
-    params = {
-        "paids_year": 12,
-        "mat_years_gt": years,
-        "rating_gt": min_rating,
-        "bonds_variable": _to_smartlab_bool(with_floaters),
-        "bonds_structures": _to_smartlab_bool(with_structures),
-        "bonds_mortage": _to_smartlab_bool(with_mortgage),
-    }
-
-    for name, conf in SEARCH_CONFIG.items():
-        with indicate_work(f"Getting {name} bonds"):
-            if conf["pagination"]:
-                for page in count(1):
-                    response = await client.get(conf["url"].format(page), params=params)
-
-                    paged_tickers = list(
-                        _parse_search_page(response, conf["selectors"])
-                    )
-                    if not paged_tickers:
-                        break
-
-                    isins.extend(paged_tickers)
-            else:
-                response = await client.get(conf["url"], params=params)
-                isins.extend(_parse_search_page(response, conf["selectors"]))
-    return isins
-
-
-def _parse_search_page(response, selectors) -> Iterator[str]:
-    search_infos = select_many_from_response(response, [selectors["url"]])
-    for el in search_infos:
-        yield el[0].attrib["href"].rsplit("/")[-2]
 
 
 def _drop_bad_predictions(db: Db) -> None:
@@ -197,7 +101,3 @@ def _drop_blacklisted_companies_and_isins(db: Db, blacklist: Blacklist) -> None:
     for isin, ticker in list(db.items()):
         if is_in_blacklist(blacklist, ticker._company, ticker._isin):
             del db[isin]
-
-
-def _to_smartlab_bool(v: Any) -> int:
-    return -1 if v else 0
