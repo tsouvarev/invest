@@ -48,6 +48,8 @@ async def search_tickers(
 
     if show_better_duplicates:
         await _drop_worse_duplicates(client, new_tickers, used_isins)
+    else:
+        _drop_used(new_tickers, used_isins)
 
     _drop_too_little_yield(new_tickers, min_yield, min_floater_yield)
 
@@ -95,6 +97,12 @@ async def _drop_worse_duplicates(
 
     for isin, ticker in list(new_tickers.items()):
         if ticker.coupon <= current_coupons.get(ticker._company, 0):
+            del new_tickers[isin]
+
+
+def _drop_used(new_tickers: Db, used_isins: list[str]) -> None:
+    for isin in used_isins:
+        if isin in new_tickers:
             del new_tickers[isin]
 
 
