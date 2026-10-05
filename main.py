@@ -13,9 +13,11 @@ from use_cases import (
     PredictionsUpdateMode,
     ShowField,
     add_to_blacklist,
+    add_to_known_duplicates,
     find_duplicates,
     get_blacklist,
     get_last_snapshot,
+    list_known_duplicates,
     load_base_db,
     load_from_db,
     load_isins_from_sheet,
@@ -24,6 +26,7 @@ from use_cases import (
     print_diff,
     print_ratings,
     remove_from_blacklist,
+    remove_from_known_duplicates,
     search_tickers,
     write_snapshot,
 )
@@ -49,6 +52,9 @@ app.add_typer(sheets_app, name="sheets")
 
 blacklist_app = AsyncTyper()
 app.add_typer(blacklist_app, name="blacklist")
+
+duplicates_app = AsyncTyper()
+app.add_typer(duplicates_app, name="duplicates")
 
 
 @bonds_app.command()
@@ -102,8 +108,8 @@ async def ratings(isin: str, with_bond_actions: bool = False) -> None:
         )
 
 
-@bonds_app.command()
-async def duplicates(
+@duplicates_app.command("find")
+async def find_dupes(
     file: Path | None = None,
     isin: list[str] | None = None,
     sheet: Annotated[str | None, Option(envvar="SHEET_ID")] = None,
@@ -124,6 +130,21 @@ async def duplicates(
     async with async_client:
         data = await find_duplicates(async_client, isins=isins)
         print_model_list(data, fields)
+
+
+@duplicates_app.command("get")
+def list_dupes() -> None:
+    list_known_duplicates()
+
+
+@duplicates_app.command("add")
+def add_dupe(canonical: str, other_name: str) -> None:
+    add_to_known_duplicates(canonical, [other_name])
+
+
+@duplicates_app.command("del")
+def remove_dupe(name: str) -> None:
+    remove_from_known_duplicates(name)
 
 
 @bonds_app.command()

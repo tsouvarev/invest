@@ -26,6 +26,8 @@ dependencies = [
 [dependency-groups]
 dev = [
   "ipdb",
+  "mdformat",
+  "mdformat-myst",
   "ruff",
   "toml-sort"
 ]

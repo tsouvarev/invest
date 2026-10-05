@@ -6,6 +6,7 @@ from clients import search_isins
 from .base import Db, Prediction, Ticker
 from .blacklist import Blacklist, is_in_blacklist
 from .db import PredictionsUpdateMode, load_base_db, load_from_db
+from .duplicates import get_canonical_name
 
 
 async def search_tickers(
@@ -71,18 +72,23 @@ def _drop_bad_quotes(db: Db) -> None:
 def _drop_duplicated_companies(db: Db) -> None:
     seen_companies = set()
     for isin, ticker in list(db.items()):
-        if ticker._company in seen_companies:
+        canonical = get_canonical_name(ticker._company)
+        if canonical in seen_companies:
             del db[isin]
-        seen_companies.add(ticker._company)
+        seen_companies.add(canonical)
 
 
 async def _drop_worse_duplicates(
     client, new_tickers: Db, used_isins: list[str]
 ) -> None:
     used_db = await load_base_db(client, isins=used_isins)
-    new_companies = {ticker._company for ticker in new_tickers.values()}
+    new_companies = {
+        get_canonical_name(ticker._company) for ticker in new_tickers.values()
+    }
     conflict_used_isins = [
-        isin for isin, ticker in used_db.items() if ticker._company in new_companies
+        isin
+        for isin, ticker in used_db.items()
+        if get_canonical_name(ticker._company) in new_companies
     ]
     conflicted_used_tickers = await load_from_db(
         client,
@@ -92,11 +98,14 @@ async def _drop_worse_duplicates(
 
     current_coupons = walk_values(
         lambda tickers: max(map(that.coupon, tickers)),
-        group_by(that._company, conflicted_used_tickers.values()),
+        group_by(
+            lambda t: get_canonical_name(t._company), conflicted_used_tickers.values()
+        ),
     )
 
     for isin, ticker in list(new_tickers.items()):
-        if ticker.coupon <= current_coupons.get(ticker._company, 0):
+        canonical = get_canonical_name(ticker._company)
+        if ticker.coupon <= current_coupons.get(canonical, 0):
             del new_tickers[isin]
 
 
@@ -119,5 +128,6 @@ def _drop_too_little_yield(db: Db, min_yield: float, min_floater_yield: float) -
 
 def _drop_blacklisted_companies_and_isins(db: Db, blacklist: Blacklist) -> None:
     for isin, ticker in list(db.items()):
-        if is_in_blacklist(blacklist, ticker._company, ticker._isin):
+        variants = [get_canonical_name(ticker._company), ticker._company, ticker._isin]
+        if is_in_blacklist(blacklist, variants):
             del db[isin]

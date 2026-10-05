@@ -132,6 +132,7 @@ pycharm
 .vscode
 
 blacklist.json
+duplicates.json
 seen.txt
 tickers.txt
 db.json

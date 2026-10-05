@@ -9,6 +9,7 @@ format:
     {{ RUN }} ruff check . --fix-only --unsafe-fixes
     just --fmt
     {{ RUN }} toml-sort *.toml --in-place --all --sort-first preview,select,project,name,version,requires-python
+    {{ RUN }} mdformat docs
 
 check:
     {{ RUN }} ruff check .
@@ -27,8 +28,8 @@ upgrade:
 show *args:
     {{ RUN_INVEST }} bonds show {{ args }}
 
-dupes:
-    {{ RUN_INVEST }} bonds duplicates
+dupes *args:
+    {{ RUN_INVEST }} duplicates {{ args }}
 
 ratings *args:
     {{ RUN_INVEST }} bonds ratings {{ args }}

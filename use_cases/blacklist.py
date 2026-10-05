@@ -84,6 +84,6 @@ def get_blacklist() -> Blacklist:
         return read_json(DB_PATH, cast_to=Blacklist, initial=[])
 
 
-def is_in_blacklist(blacklist: Blacklist, *values: str) -> bool:
+def is_in_blacklist(blacklist: Blacklist, values: list[str]) -> bool:
     blacklisted = {entry.value.lower() for entry in blacklist}
     return bool(blacklisted.intersection(values))

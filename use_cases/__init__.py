@@ -13,7 +13,13 @@ from .db import (
     load_base_db,
     load_from_db,
 )
-from .duplicates import find_duplicates
+from .duplicates import (
+    add_to_known_duplicates,
+    find_duplicates,
+    get_canonical_name,
+    list_known_duplicates,
+    remove_from_known_duplicates,
+)
 from .ratings import print_ratings
 from .search import search_tickers
 from .sheets import load_isins_from_sheet
