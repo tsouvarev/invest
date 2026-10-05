@@ -151,10 +151,10 @@ def remove_dupe(name: str) -> None:
 async def search(
     used: Path | None = None,
     sheet: Annotated[str | None, Option(envvar="SHEET_ID")] = None,
-    min_yield: float = 16,
+    min_yield: float = 15,
     min_floater_yield: float = 20,
     years: float = 1,
-    min_rating: Grade = Grade.BB,
+    min_rating: Grade = Grade.C,
     exclude_duplicates: bool = True,
     show_better_duplicates: bool = True,
     volatiles: bool = False,
