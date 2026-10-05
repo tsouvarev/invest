@@ -149,7 +149,7 @@ def indicate_work(msg_enter: str, msg_exit: str = "Done") -> Generator:
 
 def write_json[T](path: str, data: T) -> None:
     serialized = TypeAdapter(T).dump_json(
-        data, indent=2, ensure_ascii=True, fallback=encoder_fallback
+        data, indent=2, ensure_ascii=False, fallback=encoder_fallback
     )
     Path(path).write_bytes(serialized)
 
@@ -159,7 +159,7 @@ def read_json(path: str, cast_to: type, initial: Any = None) -> dict:
     path.parent.mkdir(parents=True, exist_ok=True)
 
     if path.exists():
-        with path.open() as f:
+        with path.open(encoding='utf-8') as f:
             return TypeAdapter(cast_to).validate_python(json.load(f))
 
     if initial is not None:
