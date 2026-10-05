@@ -22,7 +22,7 @@ from .duplicates import (
 )
 from .ratings import print_ratings
 from .search import search_tickers
-from .sheets import load_isins_from_sheet
+from .sheets import load_isins_from_sheet, write_info_to_sheet
 from .snapshots import (
     diff_snapshots,
     get_last_snapshot,

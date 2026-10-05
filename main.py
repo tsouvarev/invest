@@ -28,6 +28,7 @@ from use_cases import (
     remove_from_blacklist,
     remove_from_known_duplicates,
     search_tickers,
+    write_info_to_sheet,
     write_snapshot,
 )
 from utils import (
@@ -63,12 +64,13 @@ async def show(
     isin: list[str] | None = None,
     sheet: Annotated[str | None, Option(envvar="SHEET_ID")] = None,
     diff: bool = True,
+    write: bool = True,
     update: bool = False,
     update_predictions: PredictionsUpdateMode = PredictionsUpdateMode.OUTDATED,
     update_inns: InnsUpdateMode = InnsUpdateMode.MISSING,
     fields: list[ShowField] = ShowField.default,
     token: Annotated[str | None, Option(envvar="GOOGLE_SHEETS_TOKEN")] = None,
-    column: Annotated[str | None, Option(envvar="SHEET_COLUMN")] = None,
+    column: Annotated[str | None, Option(envvar="TICKERS_COLUMN")] = None,
 ) -> None:
     if file:
         isins = read_file_or_none(file)
@@ -91,13 +93,17 @@ async def show(
             update_predictions=update_predictions,
             update_inns=update_inns,
         )
-        tickers = list(data.values())
+
+    tickers = list(data.values())
+    if write:
+        write_info_to_sheet(token, sheet, column, tickers, fields)
+    else:
         print_model_list(tickers, fields)
 
-        if diff:
-            last_snapshot = get_last_snapshot()
-            print_diff(data, last_snapshot, data)
-            write_snapshot(data)
+    if diff:
+        last_snapshot = get_last_snapshot()
+        print_diff(data, last_snapshot, data)
+        write_snapshot(data)
 
 
 @bonds_app.command()
@@ -115,7 +121,7 @@ async def find_dupes(
     sheet: Annotated[str | None, Option(envvar="SHEET_ID")] = None,
     fields: list[ShowField] = ShowField.base,
     token: Annotated[str | None, Option(envvar="GOOGLE_SHEETS_TOKEN")] = None,
-    column: Annotated[str | None, Option(envvar="SHEET_COLUMN")] = None,
+    column: Annotated[str | None, Option(envvar="TICKERS_COLUMN")] = None,
 ) -> None:
     if file:
         isins = read_file_or_none(file)
@@ -163,7 +169,7 @@ async def search(
     mortgage: bool = False,
     fields: list[ShowField] = ShowField.default,
     token: Annotated[str | None, Option(envvar="GOOGLE_SHEETS_TOKEN")] = None,
-    column: Annotated[str | None, Option(envvar="SHEET_COLUMN")] = None,
+    column: Annotated[str | None, Option(envvar="TICKERS_COLUMN")] = None,
 ) -> None:
     if used:
         used_isins = read_file_or_none(used)

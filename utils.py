@@ -175,19 +175,23 @@ def print_model_list[T](
         print("No data")
         return
 
-    context = context or {}
-
     if fields:
         headers = fields
-        dumped = [
-            lmap(obj.model_dump(include=fields, context=context).get, fields)
-            for obj in data
-        ]
+        dumped = dump_with_order(data, fields, context)
     else:
         headers = "keys"
         dumped = TypeAdapter(list[T]).dump_python(data, context=context)
 
     print(tabulate(dumped, headers=headers, tablefmt="tsv"))
+
+
+def dump_with_order[T](
+    data: list[T], fields: list[str], context: dict | None = None
+) -> list[list]:
+    return [
+        lmap(obj.model_dump(include=fields, context=context).get, fields)
+        for obj in data
+    ]
 
 
 def get_model_fields(m: BaseModel) -> list[str]:
