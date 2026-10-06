@@ -4,6 +4,8 @@ from decimal import Decimal
 from enum import IntEnum, auto
 from itertools import pairwise
 from pathlib import Path
+from textwrap import shorten
+from typing import Any, NamedTuple
 
 from funcy import concat, group_by
 from pydantic import BaseModel
@@ -50,6 +52,7 @@ class Severity(IntEnum):
 
 class Change(BaseModel):
     severity: Severity
+    reason: str | None = None
     isin: str
     field: str
     from_: Value
@@ -58,37 +61,76 @@ class Change(BaseModel):
     to_ts: datetime
 
 
-def print_diff(db: Db, *snapshots: Db) -> None:
-    changes: list[Change] = diff_snapshots(*snapshots)
+class Record(NamedTuple):
+    name: str
+    field: str
+    from_: Any
+    to_: Any
 
-    if not changes:
-        print("Nothing to report")
-        return
 
-    grouped_by_severity = group_by(that.severity, changes)
+def print_diff(db: Db, *snapshots: Db, rich: bool = False) -> None:
+    print(stringify_diff(db, *snapshots, rich))
 
-    print()
-    for severity, changes in grouped_by_severity.items():
-        print(Severity.humanize(severity), "\n")
-        table = []
-        for field, field_changes in group_by(that.field, changes).items():
-            for change in field_changes:
-                ticker = db[change.isin]
 
-                name = ticker.name
-                if ticker.is_floater and field == "coupon":
-                    name = f"{name} (флоатер)"
+def stringify_diff(db: Db, *snapshots: Db, rich: bool = False) -> None:
+    all_changes: list[Change] = diff_snapshots(*snapshots)
 
-                table.append(
-                    {
-                        "name": name,
-                        "field": field,
-                        "from": change.from_,
-                        "to": change.to_,
-                        "ts": change.to_ts.date(),
-                    }
-                )
-        print(tabulate(table, headers="keys"), "\n")
+    if not all_changes:
+        return "Nothing to report"
+
+    res = ""
+    table = []
+
+    for severity, changes in group_by(that.severity, all_changes).items():
+        if rich:
+            table += _stringify_rich_diff(db, severity, changes)
+        else:
+            res += _stringify_plain_diff(db, severity, changes)
+
+    if rich:
+        res = tabulate(
+            table,
+            colalign=[None, None, "right", "left", "left"],
+            tablefmt="unsafehtml",
+        )
+    return res
+
+
+def _stringify_plain_diff(db: Db, severity: Severity, changes: list[Change]) -> str:
+    res = f"\n{Severity.humanize(severity)}\n\n"
+
+    table = []
+    for field, field_changes in group_by(that.field, changes).items():
+        for change in field_changes:
+            ticker = db[change.isin]
+
+            name = ticker.name
+            if ticker.is_floater and field == "coupon":
+                name += " (флоатер)"
+
+            table.append((name, field, change.from_, change.to_, change.reason))
+
+    return res + tabulate(table, tablefmt="simple") + "\n"
+
+
+def _stringify_rich_diff(
+    db: Db, severity: Severity, changes: list[Change]
+) -> list[tuple]:
+    header = f"<i><b>--- {Severity.humanize(severity)} ---</b></i>"
+    table = [(header,)]
+
+    for field, field_changes in group_by(that.field, changes).items():
+        for change in field_changes:
+            ticker = db[change.isin]
+
+            company = shorten(ticker.company, width=15, break_long_words=False)
+            name = f"{company} <sup>{ticker.series}</sup>"
+            if ticker.is_floater and field == "coupon":
+                name = f"(ф) {name}"
+
+            table.append((name, field, change.from_, change.to_, change.reason))
+
+    return table
 
 
 def write_snapshot(data: Db) -> None:
@@ -157,51 +199,59 @@ def _diff_for_field(isin: str, field: str, snapshots: list[Db]) -> Iterator[Chan
             continue
 
         if field == "quote":
-            severity = _get_severity_for_quote(former, latter)
+            severity, reason = _get_severity_for_quote(former, latter)
         elif field == "coupon":
-            severity = _get_severity_for_coupon(former, latter)
+            severity, reason = _get_severity_for_coupon(
+                former, latter, snap_former.is_floater
+            )
         else:
-            severity = Severity.for_field(field)
+            severity, reason = Severity.for_field(field), None
 
         if severity == Severity.IGNORE:
             continue
 
         yield Change(
             severity=severity,
+            reason=reason,
             isin=isin,
             field=field,
             from_ts=snap_former.ts.date(),
-            from_=former,
+            from_=getattr(snap_former, field),
             to_ts=snap_latter.ts.date(),
-            to_=latter,
+            to_=getattr(snap_latter, field),
         )
 
 
-def _get_severity_for_quote(former, latter):
+def _get_severity_for_quote(former, latter) -> tuple[Severity, str]:
     if former < 70 or latter < 70:
-        return Severity.HIGH
+        return Severity.HIGH, "<70"
 
     if former < 80 or latter < 80:
-        return Severity.MEDIUM
+        return Severity.MEDIUM, "<80"
 
-    delta = abs(former - latter)
-    if delta > 5:
-        return Severity.HIGH
-    if delta > 2:
-        return Severity.LOW
+    delta = latter - former
+    match abs(delta):
+        case v if v > 5:
+            severity = Severity.HIGH
+        case v if v > 2:
+            severity = Severity.LOW
+        case _:
+            severity = Severity.IGNORE
 
-    return Severity.IGNORE
+    return severity, f"{delta:+}"
 
 
-def _get_severity_for_coupon(former, latter):
-    if former < 15 or latter < 15:
-        return Severity.HIGH
+def _get_severity_for_coupon(former, latter, is_floater) -> tuple[Severity, str]:
+    if not is_floater and (former < 15 or latter < 15):
+        return Severity.HIGH, "<15"
 
-    delta = abs(former - latter)
-    if delta < 3:
-        return Severity.IGNORE
+    delta = latter - former
+    match abs(delta):
+        case v if v < 3:
+            severity = Severity.IGNORE
+        case v if not is_floater and v > 5:
+            severity = Severity.HIGH
+        case _:
+            severity = Severity.LOW
 
-    if delta > 5:
-        return Severity.HIGH
-
-    return Severity.LOW
+    return severity, f"{delta:+}"

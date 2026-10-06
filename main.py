@@ -4,6 +4,7 @@ from typing import Annotated
 
 from async_typer import AsyncTyper, Option
 
+from clients import send_message
 from use_cases import (
     Db,
     EntryType,
@@ -27,6 +28,7 @@ from use_cases import (
     remove_from_blacklist,
     remove_from_known_duplicates,
     search_tickers,
+    stringify_diff,
     write_info_to_sheet,
     write_snapshot,
 )
@@ -64,12 +66,15 @@ async def show(
     sheet: Annotated[str | None, Option(envvar="SHEET_ID")] = None,
     diff: bool = True,
     write: bool = True,
+    tg: bool = False,
     update: bool = False,
     update_predictions: PredictionsUpdateMode = PredictionsUpdateMode.OUTDATED,
     update_inns: InnsUpdateMode = InnsUpdateMode.MISSING,
     fields: list[ShowField] = ShowField.default,
     token: Annotated[str | None, Option(envvar="GOOGLE_SHEETS_TOKEN")] = None,
     column: Annotated[str | None, Option(envvar="TICKERS_COLUMN")] = None,
+    chat: Annotated[str | None, Option(envvar="CHAT_ID")] = None,
+    bot: Annotated[str | None, Option(envvar="BOT_TOKEN")] = None,
 ) -> None:
     if file:
         isins = read_file_or_none(file)
@@ -94,14 +99,23 @@ async def show(
         )
 
     tickers = list(data.values())
+
     if write:
         write_info_to_sheet(token, sheet, column, tickers, fields)
     else:
-        print_model_list(tickers, fields)
+        print_model_list(tickers, fields=fields)
 
     if diff:
         last_snapshot = get_last_snapshot()
-        print_diff(data, last_snapshot, data)
+        diff_str = stringify_diff(data, last_snapshot, data, rich=tg)
+
+        if tg:
+            if not chat or not bot:
+                raise NotImplementedError
+            await send_message(bot, chat, diff_str)
+        else:
+            print(diff_str)
+
         write_snapshot(data)
 
 
@@ -134,7 +148,7 @@ async def find_dupes(
 
     async with async_client:
         data = await find_duplicates(async_client, isins=isins)
-        print_model_list(data, fields)
+        print_model_list(data, fields=fields)
 
 
 @duplicates_app.command("get")
@@ -195,7 +209,7 @@ async def search(
             with_structures=volatiles or structures,
             with_mortgage=volatiles or mortgage,
         )
-        print_model_list(data, fields)
+        print_model_list(data, fields=fields)
 
 
 @snaps_app.command("diff")

@@ -28,5 +28,6 @@ from .snapshots import (
     get_last_snapshot,
     load_snapshot,
     print_diff,
+    stringify_diff,
     write_snapshot,
 )

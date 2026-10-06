@@ -53,7 +53,7 @@ def write_info_to_sheet(
         col = _parse_column(tickers_column)
         cells = _get_cells(token, sheet_id, col.as_range())
 
-        values = dump_with_order(data, fields)
+        values = dump_with_order(data, fields=fields)
         starting_row = _find_first_row(cells, _is_ticker_cell)
         ending_row = starting_row + len(values) - 1
         row = values[0]
