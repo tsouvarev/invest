@@ -37,9 +37,6 @@ ratings *args:
 diff *args:
     {{ RUN_INVEST }} snaps diff {{ args }}
 
-update *args:
-    {{ RUN_INVEST }} db update {{ args }}
-
 search *args:
     {{ RUN_INVEST }} bonds search {{ args }}
 

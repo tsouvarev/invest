@@ -3,7 +3,6 @@ from pathlib import Path
 from typing import Annotated
 
 from async_typer import AsyncTyper, Option
-from tabulate import tabulate
 
 from use_cases import (
     Db,
@@ -197,37 +196,6 @@ async def search(
             with_mortgage=volatiles or mortgage,
         )
         print_model_list(data, fields)
-
-
-@db_app.command()
-async def update(
-    file: Path | None = None,
-    isin: list[str] | None = None,
-    sheet: Annotated[str | None, Option(envvar="SHEET_ID")] = None,
-    token: Annotated[str | None, Option(envvar="GOOGLE_SHEETS_TOKEN")] = None,
-    column: Annotated[str | None, Option(envvar="SHEET_COLUMN")] = None,
-) -> None:
-    if file:
-        isins = read_file_or_none(file)
-    elif isin:
-        isins = isin
-    elif sheet:
-        isins = load_isins_from_sheet(token, sheet, column)
-    else:
-        msg = "no source"
-        raise ValueError(msg)
-
-    async with async_client:
-        data = await load_from_db(
-            async_client, isins=isins, update_predictions=PredictionsUpdateMode.ALL
-        )
-        print_model_list(data)
-
-
-@snaps_app.command("load")
-def load_snaps(date: datetime) -> None:
-    data = load_snapshot(date)
-    print(tabulate(data.values(), headers="keys"))
 
 
 @snaps_app.command("diff")
