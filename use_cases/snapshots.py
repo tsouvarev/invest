@@ -151,15 +151,15 @@ def _diff_for_isin(isin: str, *snapshots: Db) -> list[Change]:
 
 
 def _diff_for_field(isin: str, field: str, snapshots: list[Db]) -> Iterator[Change]:
-    for snap_a, snap_b in pairwise(snapshots):
-        a, b = getattr(snap_a, field), getattr(snap_b, field)
-        if a == b:
+    for snap_former, snap_latter in pairwise(snapshots):
+        former, latter = getattr(snap_former, field), getattr(snap_latter, field)
+        if former == latter:
             continue
 
         if field == "quote":
-            severity = _get_severity_for_quote(a, b)
+            severity = _get_severity_for_quote(former, latter)
         elif field == "coupon":
-            severity = _get_severity_for_coupon(a, b)
+            severity = _get_severity_for_coupon(former, latter)
         else:
             severity = Severity.for_field(field)
 
@@ -170,21 +170,21 @@ def _diff_for_field(isin: str, field: str, snapshots: list[Db]) -> Iterator[Chan
             severity=severity,
             isin=isin,
             field=field,
-            from_ts=snap_a.ts.date(),
-            from_=getattr(snap_a, field),
-            to_ts=snap_b.ts.date(),
-            to_=getattr(snap_b, field),
+            from_ts=snap_former.ts.date(),
+            from_=former,
+            to_ts=snap_latter.ts.date(),
+            to_=latter,
         )
 
 
-def _get_severity_for_quote(a, b):
-    if a < 70 or b < 70:
+def _get_severity_for_quote(former, latter):
+    if former < 70 or latter < 70:
         return Severity.HIGH
 
-    if a < 80 or b < 80:
+    if former < 80 or latter < 80:
         return Severity.MEDIUM
 
-    delta = a - b
+    delta = abs(former - latter)
     if delta > 5:
         return Severity.HIGH
     if delta > 2:
@@ -193,11 +193,11 @@ def _get_severity_for_quote(a, b):
     return Severity.IGNORE
 
 
-def _get_severity_for_coupon(a, b):
-    if a < 15 or b < 15:
+def _get_severity_for_coupon(former, latter):
+    if former < 15 or latter < 15:
         return Severity.HIGH
 
-    delta = abs(a - b)
+    delta = abs(former - latter)
     if delta < 3:
         return Severity.IGNORE
 
