@@ -45,3 +45,6 @@ search *args:
 
 bl *args:
     {{ RUN_INVEST }} blacklist {{ args }}
+
+help *args:
+    {{ RUN_INVEST }} {{ args }} --help
