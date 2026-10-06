@@ -1,5 +1,6 @@
 from collections.abc import Iterator
 from datetime import datetime
+from decimal import Decimal
 from enum import IntEnum, auto
 from itertools import pairwise
 from pathlib import Path
@@ -13,7 +14,7 @@ from utils import now, read_json, write_json
 
 from .base import Db
 
-type Value = int | float | str
+type Value = int | Decimal | str
 
 
 class Severity(IntEnum):

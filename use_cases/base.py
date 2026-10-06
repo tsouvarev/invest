@@ -1,4 +1,5 @@
 from datetime import date, datetime, timedelta
+from decimal import Decimal
 from functools import cached_property
 
 from pydantic import (
@@ -26,11 +27,11 @@ class Ticker(BaseModel):
     series: str
     inn: str
     grade: Grade
-    nominal: float
+    nominal: Decimal
     maturity_date: date
     sector: Sector
-    coupon: float
-    quote: float
+    coupon: Decimal
+    quote: Decimal
     prediction: Prediction
     prediction_date: date
 

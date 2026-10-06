@@ -1,5 +1,6 @@
 from asyncio import Semaphore
 from datetime import date
+from decimal import Decimal
 from enum import StrEnum, auto
 
 from asyncstdlib import zip as azip
@@ -13,7 +14,7 @@ from utils import (
     keys_dict,
     parse_date,
     select_one_from_response,
-    str_percent_to_float,
+    str_percent_to_decimal,
 )
 
 CONFIG = {
@@ -152,9 +153,9 @@ class Grade(StrEnum):
 class SmartlabInfo(BaseModel):
     grade: Grade
     type: BondType
-    coupon: float
-    quote: float
-    nominal: float
+    coupon: Decimal
+    quote: Decimal
+    nominal: Decimal
     maturity_date: date
     sector: Sector
 
@@ -184,9 +185,9 @@ class SmartlabInfo(BaseModel):
     @field_validator("coupon", "quote", mode="before")
     @classmethod
     def parse_percents(cls, v):
-        if isinstance(v, float):
+        if isinstance(v, Decimal):
             return v
-        return str_percent_to_float(v)
+        return str_percent_to_decimal(v)
 
 
 async def get_smartlab_info(

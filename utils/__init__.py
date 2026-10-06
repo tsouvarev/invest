@@ -9,7 +9,7 @@ from .parsers import (
     localize_percents,
     parse_date,
     parse_human_date,
-    str_percent_to_float,
+    str_percent_to_decimal,
     strip_ru,
 )
 from .predicates import has_prefixes, not_in

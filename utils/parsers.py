@@ -1,5 +1,7 @@
 import locale
 from datetime import date
+from decimal import Decimal
+from numbers import Number
 
 
 def parse_date(v: str, *formats: str) -> date:
@@ -13,8 +15,8 @@ def parse_date(v: str, *formats: str) -> date:
     raise ValueError(msg)
 
 
-def str_percent_to_float(v: str) -> float:
-    return float(v.strip(" %") or "0")
+def str_percent_to_decimal(v: str) -> Decimal:
+    return Decimal(v.strip(" %") or "0")
 
 
 def parse_human_date(v: str) -> date:
@@ -30,11 +32,11 @@ def strip_ru(v: str) -> str:
     return v.removeprefix("ru")
 
 
-def localize_digits(v: float) -> str:
+def localize_digits(v: Number) -> str:
     locale.setlocale(category=locale.LC_ALL, locale="nl_NL")
     return locale.localize(str(v))
 
 
-def localize_percents(v: float) -> str:
+def localize_percents(v: Number) -> str:
     locale.setlocale(category=locale.LC_ALL, locale="nl_NL")
     return locale.localize(f"{v}%")

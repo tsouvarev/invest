@@ -46,7 +46,7 @@ def read_json(path: str, cast_to: type, initial: Any = None) -> dict:
     path.parent.mkdir(parents=True, exist_ok=True)
 
     if path.exists():
-        with path.open(encoding='utf-8') as f:
+        with path.open(encoding="utf-8") as f:
             return TypeAdapter(cast_to).validate_python(json.load(f))
 
     if initial is not None:
