@@ -13,5 +13,4 @@ from .parsers import (
     strip_ru,
 )
 from .predicates import has_prefixes, not_in
-from .requests import Request, async_client, get_batch
 from .selectors import select_many_from_response, select_one_from_response

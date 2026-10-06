@@ -8,12 +8,12 @@ from httpxyz import AsyncClient
 from pydantic import BaseModel, ConfigDict, computed_field
 
 from utils import (
-    Request,
-    get_batch,
     keys_dict,
     not_in,
     select_one_from_response,
 )
+
+from .web import Request, get_batch
 
 CONFIG = {
     "tinkoff": {

@@ -8,9 +8,8 @@ from funcy import autocurry, lsplit
 from httpxyz import AsyncClient
 from pydantic import BaseModel, ConfigDict, field_validator
 
+from clients.web import Request, get_batch
 from utils import (
-    Request,
-    get_batch,
     keys_dict,
     parse_date,
     select_one_from_response,

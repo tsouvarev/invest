@@ -7,7 +7,9 @@ from asyncstdlib import zip as azip
 from funcy import curry, lsplit
 from pydantic import BaseModel, ConfigDict
 
-from utils import Request, get_batch, keys_dict
+from utils import keys_dict
+
+from .web import Request, get_batch
 
 CONFIG = {
     "moex": {

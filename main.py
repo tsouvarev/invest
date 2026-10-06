@@ -4,7 +4,7 @@ from typing import Annotated
 
 from async_typer import AsyncTyper, Option
 
-from clients import send_message
+from clients import async_client, send_message
 from use_cases import (
     Db,
     EntryType,
@@ -33,7 +33,6 @@ from use_cases import (
     write_snapshot,
 )
 from utils import (
-    async_client,
     print_model_list,
     read_file_or_none,
 )
