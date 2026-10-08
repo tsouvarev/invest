@@ -30,7 +30,7 @@ def stringify_model_list[T](
         headers = "keys"
         dumped = TypeAdapter(list[T]).dump_python(data, context=context)
 
-    tablefmt = "tsv" if rich else "github"
+    tablefmt = "github" if rich else "tsv"
     return tabulate(dumped, headers=headers, tablefmt=tablefmt)
 
 
