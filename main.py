@@ -170,7 +170,7 @@ async def search(
     used: Path | None = None,
     sheet: Annotated[str | None, Option(envvar="SHEET_ID")] = None,
     min_yield: float = 15,
-    min_floater_yield: float = 20,
+    min_floater_yield: float = 17,
     years: float = 1,
     min_rating: Grade = Grade.C,
     exclude_duplicates: bool = True,
