@@ -46,13 +46,12 @@ async def search_tickers(
     _drop_blacklisted_companies_and_isins(new_tickers, blacklist)
     _drop_bad_predictions(new_tickers)
     _drop_bad_quotes(new_tickers)
+    _drop_too_little_yield(new_tickers, min_yield, min_floater_yield)
 
     if show_better_duplicates:
         await _drop_worse_duplicates(client, new_tickers, used_isins)
     else:
         _drop_used(new_tickers, used_isins)
-
-    _drop_too_little_yield(new_tickers, min_yield, min_floater_yield)
 
     return sorted(new_tickers.values(), key=that.coupon, reverse=True)
 
