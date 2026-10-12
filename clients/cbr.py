@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, timedelta
 from enum import StrEnum, auto
 from itertools import count
 from typing import Annotated
@@ -9,7 +9,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 from tqdm import tqdm
 from whatever import that
 
-from utils import has_prefixes, indicate_work, keys_dict, parse_date
+from utils import has_prefixes, indicate_work, keys_dict, now, parse_date
 
 from .moex import MoexInfo
 
@@ -20,6 +20,7 @@ CONFIG = {
         "method": "POST",
     },
 }
+UNKNOWN_PREDICTION_DATE = (now() - timedelta(days=365)).date()
 
 
 class PredictionsUpdateMode(StrEnum):
@@ -112,11 +113,13 @@ def get_company_predictions(items: list[CbrItem]) -> list[CbrItem]:
 
 
 def _get_last_prediction(predictions: list[CbrItem]) -> CbrInfo:
-    withdrawn_kra = []
-    withdrawn_date = None
+    withdrawn_kra = set()
+    withdrawn_date = UNKNOWN_PREDICTION_DATE
 
     if not predictions:
-        return CbrInfo(prediction=Prediction.STABLE, prediction_date=date.today())
+        return CbrInfo(
+            prediction=Prediction.UNKNOWN, prediction_date=UNKNOWN_PREDICTION_DATE
+        )
 
     for data in predictions:
         kra = data.kra_name
@@ -124,7 +127,7 @@ def _get_last_prediction(predictions: list[CbrItem]) -> CbrInfo:
             continue
 
         if data.rating_action.startswith("WD"):
-            withdrawn_kra.append(kra)
+            withdrawn_kra.add(kra)
             withdrawn_date = data.release_date
         else:
             return CbrInfo(
@@ -132,10 +135,7 @@ def _get_last_prediction(predictions: list[CbrItem]) -> CbrInfo:
                 prediction_date=data.release_date,
             )
 
-    return CbrInfo(
-        prediction=Prediction.WITHDRAWN,
-        prediction_date=withdrawn_date or date.today(),
-    )
+    return CbrInfo(prediction=Prediction.WITHDRAWN, prediction_date=withdrawn_date)
 
 
 def _parse_prediction(s: str) -> Prediction:
