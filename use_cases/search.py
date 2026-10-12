@@ -1,4 +1,5 @@
 from funcy import group_by, walk_values
+from tabulate import tabulate
 from whatever import that
 
 from clients import search_isins
@@ -24,6 +25,16 @@ async def search_tickers(
     with_structures: bool,
     with_mortgage: bool,
 ) -> list[Ticker]:
+    search_conditions = [
+        ("Число выплат в год", 12),
+        ("Минимальное время погашения", years),
+        ("Минимальный рейтинг", min_rating),
+        ("Включить флоатеры", with_floaters),
+        ("Включить структурные", with_structures),
+        ("Включить ипотечные", with_mortgage),
+    ]
+    print("\nУсловия поиска\n", tabulate(search_conditions))
+
     isins = await search_isins(
         client,
         years=years,
