@@ -17,7 +17,6 @@ dependencies = [
   "lxml",
   "pydantic",
   "pytz>=2026.3.post1",
-  "sqlalchemy",
   "tabulate",
   "tqdm",
   "typer",
