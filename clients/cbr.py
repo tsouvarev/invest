@@ -47,6 +47,7 @@ class CbrInfo(BaseModel):
 class CbrData(BaseModel):
     item_list: Annotated[list[CbrItem], Field(alias="itemList")]
     page_count: Annotated[int, Field(alias="pageCount")]
+    item_count: Annotated[int, Field(alias="itemCount")]
 
 
 class CbrItem(BaseModel):
@@ -157,16 +158,22 @@ def _parse_prediction(s: str) -> Prediction:
 
 async def _get_cbr_items(client: AsyncClient, csrf_token, inn: str) -> list[CbrData]:
     config = CONFIG["cbr"]
-
     predictions = []
+    expected_count = 0
+
     for page in count(1):
-        data = {"fields[pageNumber]": page, "fields[inn]": inn}
+        data = {
+            "fields[pageNumber]": str(page),
+            "fields[pageSize]": "25",
+            "fields[sortingField]": "releaseDate",
+            "fields[sortingDirection]": "ascending",
+        }
 
         if page > 1:
-            del data["fields[inn]"]
             action = "searchRatingNavigation"
         else:
             action = "searchRating"
+            data["fields[inn]"] = inn
 
         response = await client.request(
             method=config["method"],
@@ -180,15 +187,19 @@ async def _get_cbr_items(client: AsyncClient, csrf_token, inn: str) -> list[CbrD
             break
 
         cbr_data = CbrData(**response.json()["data"])
+        expected_count = cbr_data.item_count
         predictions.extend(cbr_data.item_list)
 
         if cbr_data.page_count == page:
             break
 
+    if len(predictions) != expected_count:
+        raise ValueError
+
     return predictions
 
 
-async def get_cbr_csrf(client):
+async def get_cbr_csrf(client: AsyncClient) -> str:
     with indicate_work("Getting CSRF token for CBR"):
         response = await client.post(
             CONFIG["cbr"]["url"],
