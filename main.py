@@ -119,8 +119,13 @@ async def show(
 
 
 @bonds_app.command()
-async def ratings(isin: str, with_bond_actions: bool = False) -> None:
+async def ratings(
+    isin: str, with_bond_actions: Annotated[bool, Option("--all")] = False
+) -> None:
     async with async_client:
+        db = await load_base_db(async_client, isins=[isin])
+        ticker = db[isin]
+        print("\n", ticker.name, "\n")
         await print_ratings(
             async_client, isin=isin, with_bond_actions=with_bond_actions
         )
