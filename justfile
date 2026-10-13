@@ -45,3 +45,6 @@ bl *args:
 
 help *args:
     {{ RUN_INVEST }} {{ args }} --help
+
+adr *name:
+    cp docs/adr/_template.md "docs/adr/`date --iso-8601=date` - {{ name }}.md"
