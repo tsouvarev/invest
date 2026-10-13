@@ -3,6 +3,7 @@ from tabulate import tabulate
 from whatever import that
 
 from clients import search_isins
+from utils import now
 
 from .base import Db, Prediction, Ticker
 from .blacklist import Blacklist, is_in_blacklist
@@ -107,7 +108,7 @@ async def _drop_worse_duplicates(
     )
 
     current_coupons = walk_values(
-        lambda tickers: max(map(that.coupon, tickers)),
+        lambda tickers: max((t.coupon, t.maturity_date) for t in tickers),
         group_by(
             lambda t: get_canonical_name(t._company), conflicted_used_tickers.values()
         ),
@@ -115,8 +116,16 @@ async def _drop_worse_duplicates(
 
     for isin, ticker in list(new_tickers.items()):
         canonical = get_canonical_name(ticker._company)
-        if ticker.coupon <= current_coupons.get(canonical, 0):
-            del new_tickers[isin]
+        coupon, maturity_date = current_coupons.get(canonical, (0, now()))
+
+        has_better_coupon = ticker.coupon > coupon
+        has_better_maturity = (
+            ticker.coupon == coupon and ticker.maturity_date > maturity_date
+        )
+        if has_better_coupon or has_better_maturity:
+            continue
+
+        del new_tickers[isin]
 
 
 def _drop_used(new_tickers: Db, used_isins: list[str]) -> None:
