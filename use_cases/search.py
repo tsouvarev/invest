@@ -1,3 +1,5 @@
+from math import ceil
+
 from funcy import group_by, walk_values
 from tabulate import tabulate
 from whatever import that
@@ -18,8 +20,8 @@ async def search_tickers(
     blacklist: Blacklist,
     min_yield: float,
     min_floater_yield: float,
-    years: int,
     min_rating: int,
+    profitable_months: int,
     exclude_duplicates: bool,
     show_better_duplicates: bool,
     with_floaters: bool,
@@ -28,7 +30,7 @@ async def search_tickers(
 ) -> list[Ticker]:
     search_conditions = [
         ("Число выплат в год", 12),
-        ("Минимальное время погашения", years),
+        ("Месяцев в плюс", profitable_months),
         ("Минимальный рейтинг", min_rating),
         ("Включить флоатеры", with_floaters),
         ("Включить структурные", with_structures),
@@ -38,7 +40,6 @@ async def search_tickers(
 
     isins = await search_isins(
         client,
-        years=years,
         min_rating=min_rating,
         with_floaters=with_floaters,
         with_structures=with_structures,
@@ -54,6 +55,8 @@ async def search_tickers(
 
     if exclude_duplicates:
         _drop_duplicated_companies(new_tickers)
+
+    _drop_too_little_profitable_months(new_tickers, profitable_months)
 
     _drop_blacklisted_companies_and_isins(new_tickers, blacklist)
     _drop_bad_predictions(new_tickers)
@@ -71,6 +74,21 @@ async def search_tickers(
 def _drop_bad_predictions(db: Db) -> None:
     for isin, ticker in list(db.items()):
         if not ticker.prediction or ticker.prediction == Prediction.WITHDRAWN:
+            del db[isin]
+
+
+def _drop_too_little_profitable_months(db: Db, profitable_months: int) -> None:
+    today = now().date()
+
+    for isin, ticker in list(db.items()):
+        if ticker.quote < 95:
+            continue
+
+        days_until_mature = (ticker.maturity_date - today).days
+        percents_per_day = ticker.coupon / 365
+        days_until_profitable = ceil((ticker.quote - 100) / percents_per_day)
+
+        if (days_until_mature - days_until_profitable) * 30 <= profitable_months:
             del db[isin]
 
 

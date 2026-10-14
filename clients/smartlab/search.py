@@ -41,7 +41,6 @@ CONFIG = {
 async def search_isins(
     client: AsyncClient,
     *,
-    years: int,
     min_rating: float,
     with_floaters: bool,
     with_structures: bool,
@@ -50,7 +49,6 @@ async def search_isins(
     isins = []
     params = {
         "paids_year": 12,
-        "mat_years_gt": years,
         "rating_gt": min_rating,
         "bonds_variable": _to_smartlab_bool(with_floaters),
         "bonds_structures": _to_smartlab_bool(with_structures),
