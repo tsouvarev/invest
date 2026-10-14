@@ -1,5 +1,7 @@
+from collections.abc import Callable
 from datetime import datetime
 from enum import StrEnum, auto
+from functools import wraps
 
 from funcy import remove
 from httpxyz import AsyncClient
@@ -84,6 +86,11 @@ def get_blacklist() -> Blacklist:
         return read_json(DB_PATH, cast_to=Blacklist, initial=[])
 
 
-def is_in_blacklist(blacklist: Blacklist, values: list[str]) -> bool:
+def is_in_blacklist(blacklist: Blacklist) -> Callable:
     blacklisted = {entry.value.lower() for entry in blacklist}
-    return bool(blacklisted.intersection(values))
+
+    @wraps(is_in_blacklist)
+    def inner(values: list[str]) -> bool:
+        return bool(blacklisted.intersection(values))
+
+    return inner

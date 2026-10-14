@@ -164,7 +164,8 @@ def _drop_too_little_yield(db: Db, min_yield: float, min_floater_yield: float) -
 
 
 def _drop_blacklisted_companies_and_isins(db: Db, blacklist: Blacklist) -> None:
+    has_blacklisted = is_in_blacklist(blacklist)
     for isin, ticker in list(db.items()):
         variants = [get_canonical_name(ticker._company), ticker._company, ticker._isin]
-        if is_in_blacklist(blacklist, variants):
+        if has_blacklisted(variants):
             del db[isin]
