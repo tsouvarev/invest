@@ -137,10 +137,11 @@ async def _drop_worse_duplicates(
         coupon, maturity_date = current_coupons.get(canonical, (0, now()))
 
         has_better_coupon = ticker.coupon > coupon
-        has_better_maturity = (
+        has_same_coupon_but_better_maturity = (
             ticker.coupon == coupon and ticker.maturity_date > maturity_date
         )
-        if has_better_coupon or has_better_maturity:
+
+        if has_better_coupon or has_same_coupon_but_better_maturity:
             continue
 
         del new_tickers[isin]
