@@ -42,17 +42,35 @@ async def search_isins(
     client: AsyncClient,
     *,
     min_rating: float,
+    with_vdo: bool,
+    with_put_offer: bool,
+    with_call_offer: bool,
     with_floaters: bool,
     with_structures: bool,
     with_mortgage: bool,
+    with_amortized: bool,
+    with_perpetual: bool,
+    with_subordered: bool,
+    with_indexed: bool,
+    with_discount: bool,
+    with_convertible: bool,
 ) -> list[str]:
     isins = []
     params = {
         "paids_year": 12,
         "rating_gt": min_rating,
+        "bonds_vdo": _to_smartlab_bool(with_vdo),
+        "bonds_put_offer": _to_smartlab_bool(with_put_offer),
+        "bonds_call_offer": _to_smartlab_bool(with_call_offer),
         "bonds_variable": _to_smartlab_bool(with_floaters),
         "bonds_structures": _to_smartlab_bool(with_structures),
         "bonds_mortage": _to_smartlab_bool(with_mortgage),
+        "bonds_amortized": _to_smartlab_bool(with_amortized),
+        "bonds_perpetual": _to_smartlab_bool(with_perpetual),
+        "bonds_suborded": _to_smartlab_bool(with_subordered),
+        "bonds_indexed": _to_smartlab_bool(with_indexed),
+        "bonds_discount": _to_smartlab_bool(with_discount),
+        "bonds_convertible": _to_smartlab_bool(with_convertible),
     }
 
     for name, conf in CONFIG.items():

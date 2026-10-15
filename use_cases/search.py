@@ -24,26 +24,53 @@ async def search_tickers(
     profitable_months: int,
     exclude_duplicates: bool,
     show_better_duplicates: bool,
+    with_vdo: bool,
+    with_put_offer: bool,
+    with_call_offer: bool,
     with_floaters: bool,
     with_structures: bool,
     with_mortgage: bool,
+    with_amortized: bool,
+    with_perpetual: bool,
+    with_subordered: bool,
+    with_indexed: bool,
+    with_discount: bool,
+    with_convertible: bool,
 ) -> list[Ticker]:
     search_conditions = [
         ("Число выплат в год", 12),
         ("Месяцев в плюс", profitable_months),
         ("Минимальный рейтинг", min_rating),
+        ("Включить высокодоходные", with_vdo),
+        ("Включить put-оферты", with_put_offer),
+        ("Включить call-оферты", with_call_offer),
         ("Включить флоатеры", with_floaters),
         ("Включить структурные", with_structures),
         ("Включить ипотечные", with_mortgage),
+        ("Включить амортизированные", with_amortized),
+        ("Включить бессрочные", with_perpetual),
+        ("Включить субординированные", with_subordered),
+        ("Включить линкеры", with_indexed),
+        ("Включить дисконтные", with_discount),
+        ("Включить конвертируемые", with_convertible),
     ]
     print("\nУсловия поиска\n", tabulate(search_conditions))
 
     isins = await search_isins(
         client,
         min_rating=min_rating,
+        with_vdo=with_vdo,
+        with_put_offer=with_put_offer,
+        with_call_offer=with_call_offer,
         with_floaters=with_floaters,
         with_structures=with_structures,
         with_mortgage=with_mortgage,
+        with_amortized=with_amortized,
+        with_perpetual=with_perpetual,
+        with_subordered=with_subordered,
+        with_indexed=with_indexed,
+        with_discount=with_discount,
+        with_convertible=with_convertible,
     )
 
     new_tickers = await load_from_db(
