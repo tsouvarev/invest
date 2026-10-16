@@ -1,4 +1,5 @@
 from datetime import datetime
+from functools import partial
 from pathlib import Path
 from typing import Annotated
 
@@ -32,10 +33,18 @@ from use_cases import (
     write_info_to_sheet,
     write_snapshot,
 )
-from utils import (
-    print_model_list,
-    read_file_or_none,
-)
+from utils import env_option, print_model_list, read_file_or_none
+
+COMMON_ENVS = {
+    "<FIELDS>": "FIELDS",
+    "<FILE>": "FILE",
+    "<SHEET>": "GOOGLE_SHEETS_ID",
+    "<TOKEN>": "GOOGLE_SHEETS_TOKEN",
+    "<COLUMN>": "GOOGLE_TICKERS_COLUMN",
+    "<CHAT>": "TELEGRAM_CHAT_ID",
+    "<BOT>": "TELEGRAM_BOT_TOKEN",
+}
+
 
 app = AsyncTyper()
 
@@ -58,22 +67,31 @@ duplicates_app = AsyncTyper()
 app.add_typer(duplicates_app, name="duplicates")
 
 
+show_opt = partial(env_option, common_envs=COMMON_ENVS, prefix="SHOW")
+find_opt = partial(env_option, common_envs=COMMON_ENVS, prefix="FIND")
+search_opt = partial(env_option, common_envs=COMMON_ENVS, prefix="SEARCH")
+
+
 @bonds_app.command()
 async def show(
-    file: Path | None = None,
+    diff: Annotated[bool, show_opt(env="DIFF")],
+    write: Annotated[bool, show_opt(env="WRITE")],
+    tg: Annotated[bool, show_opt(env="TG")],
+    update: Annotated[bool, show_opt(env="UPDATE")] = False,
+    update_inns: Annotated[
+        InnsUpdateMode, show_opt(env="UPDATE_INNS")
+    ] = InnsUpdateMode.MISSING,
+    update_predictions: Annotated[
+        PredictionsUpdateMode, show_opt(env="UPDATE_PREDICTIONS")
+    ] = PredictionsUpdateMode.OUTDATED,
+    fields: Annotated[list[ShowField], show_opt(env="<FIELDS>")] = ShowField.default,
     isin: list[str] | None = None,
-    sheet: Annotated[str | None, Option(envvar="SHEET_ID")] = None,
-    diff: bool = True,
-    write: bool = True,
-    tg: bool = False,
-    update: bool = False,
-    update_predictions: PredictionsUpdateMode = PredictionsUpdateMode.OUTDATED,
-    update_inns: InnsUpdateMode = InnsUpdateMode.MISSING,
-    fields: list[ShowField] = ShowField.default,
-    token: Annotated[str | None, Option(envvar="GOOGLE_SHEETS_TOKEN")] = None,
-    column: Annotated[str | None, Option(envvar="TICKERS_COLUMN")] = None,
-    chat: Annotated[str | None, Option(envvar="CHAT_ID")] = None,
-    bot: Annotated[str | None, Option(envvar="BOT_TOKEN")] = None,
+    file: Annotated[Path | None, show_opt(env="<FILE>")] = None,
+    sheet: Annotated[str | None, show_opt(env="<SHEET>")] = None,
+    token: Annotated[str | None, show_opt(env="<TOKEN>")] = None,
+    column: Annotated[str | None, show_opt(env="<COLUMN>")] = None,
+    chat: Annotated[str | None, show_opt(env="<CHAT>")] = None,
+    bot: Annotated[str | None, show_opt(env="<BOT>")] = None,
 ) -> None:
     if file:
         isins = read_file_or_none(file)
@@ -133,18 +151,12 @@ async def ratings(
 
 @duplicates_app.command("find")
 async def find_dupes(
-    file: Path | None = None,
-    isin: list[str] | None = None,
-    sheet: Annotated[str | None, Option(envvar="SHEET_ID")] = None,
-    fields: list[ShowField] = ShowField.base,
-    token: Annotated[str | None, Option(envvar="GOOGLE_SHEETS_TOKEN")] = None,
-    column: Annotated[str | None, Option(envvar="TICKERS_COLUMN")] = None,
+    fields: Annotated[list[ShowField], find_opt(env="<FIELDS>")] = ShowField.base,
+    sheet: Annotated[str | None, find_opt(env="<SHEET>")] = None,
+    token: Annotated[str | None, find_opt(env="<TOKEN>")] = None,
+    column: Annotated[str | None, find_opt(env="<COLUMN>")] = None,
 ) -> None:
-    if file:
-        isins = read_file_or_none(file)
-    elif isin:
-        isins = isin
-    elif sheet:
+    if sheet:
         isins = load_isins_from_sheet(token, sheet, column)
     else:
         msg = "no source"
@@ -172,38 +184,33 @@ def remove_dupe(name: str) -> None:
 
 @bonds_app.command()
 async def search(
-    used: Path | None = None,
-    sheet: Annotated[str | None, Option(envvar="SHEET_ID")] = None,
-    min_yield: float = 15,
-    min_floater_yield: float = 17,
-    profitable_months: float = 2,
-    min_rating: Grade = Grade.C,
-    exclude_duplicates: bool = True,
-    show_better_duplicates: bool = True,
-    volatiles: bool = False,
-    vdo: bool = False,
-    put_offer: bool = False,
-    call_offer: bool = False,
-    floaters: bool = False,
-    structures: bool = False,
-    mortgage: bool = False,
-    amortized: bool = False,
-    perpetual: bool = False,
-    subordered: bool = False,
-    indexed: bool = False,
-    discount: bool = False,
-    convertible: bool = False,
-    fields: list[ShowField] = ShowField.default,
-    token: Annotated[str | None, Option(envvar="GOOGLE_SHEETS_TOKEN")] = None,
-    column: Annotated[str | None, Option(envvar="TICKERS_COLUMN")] = None,
+    min_rating: Annotated[Grade, search_opt(env="MIN_RATING")],
+    min_yield: Annotated[float, search_opt(env="MIN_YIELD")],
+    min_floater_yield: Annotated[float, search_opt(env="MIN_FLOATER_YIELD")],
+    profitable_months: Annotated[float, search_opt(env="PROFITABLE_MONTHS")],
+    exclude_duplicates: Annotated[bool, search_opt(env="EXCLUDE_DUPLICATES")] = True,
+    show_better_duplicates: Annotated[
+        bool, search_opt(env="SHOW_BETTER_DUPLICATES")
+    ] = True,
+    volatiles: Annotated[bool, search_opt(env="VOLATILES")] = False,
+    vdo: Annotated[bool, search_opt(env="VDO")] = False,
+    put_offer: Annotated[bool, search_opt(env="PUT_OFFER")] = False,
+    call_offer: Annotated[bool, search_opt(env="CALL_OFFER")] = False,
+    floaters: Annotated[bool, search_opt(env="FLOATERS")] = False,
+    structures: Annotated[bool, search_opt(env="STRUCTURES")] = False,
+    mortgage: Annotated[bool, search_opt(env="MORTGAGE")] = False,
+    amortized: Annotated[bool, search_opt(env="AMORTIZED")] = False,
+    perpetual: Annotated[bool, search_opt(env="PERPETUAL")] = False,
+    subordered: Annotated[bool, search_opt(env="SUBORDERED")] = False,
+    indexed: Annotated[bool, search_opt(env="INDEXED")] = False,
+    discount: Annotated[bool, search_opt(env="DISCOUNT")] = False,
+    convertible: Annotated[bool, search_opt(env="CONVERTIBLE")] = False,
+    fields: Annotated[list[ShowField], search_opt(env="<FIELDS>")] = ShowField.default,
+    sheet: Annotated[str | None, search_opt(env="<SHEET>")] = None,
+    token: Annotated[str | None, search_opt(env="<TOKEN>")] = None,
+    column: Annotated[str | None, search_opt(env="<COLUMN>")] = None,
 ) -> None:
-    if used:
-        used_isins = read_file_or_none(used)
-    elif sheet:
-        used_isins = load_isins_from_sheet(token, sheet, column)
-    else:
-        msg = "no source"
-        raise ValueError(msg)
+    used_isins = load_isins_from_sheet(token, sheet, column) if sheet else []
 
     blacklisted = get_blacklist()
 
