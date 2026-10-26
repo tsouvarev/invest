@@ -26,21 +26,25 @@ class Severity(IntEnum):
     IGNORE = auto()
 
     @classmethod
-    def for_field(cls, field):
+    def for_field(
+        cls, field: str, former: Value, latter: Value
+    ) -> tuple[Severity, str | None]:
         match field:
             case "grade" | "prediction" | "sector":
-                return cls.HIGH
+                return cls.HIGH, None
             case "coupon":
-                return cls.MEDIUM
-            case "quote" | "maturity_date" | "nominal":
-                return cls.LOW
+                return cls.MEDIUM, None
+            case "maturity_date":
+                return cls.LOW, None
+            case "quote" | "nominal":
+                return cls.LOW, format_with_sign(latter - former)
             case "prediction_date":
-                return cls.IGNORE
+                return cls.IGNORE, None
             case _:
                 raise ValueError(field)
 
     @classmethod
-    def humanize(cls, v):
+    def humanize(cls, v: Severity) -> str:
         match v:
             case cls.HIGH:
                 return "Важное!"
@@ -205,7 +209,7 @@ def _diff_for_field(isin: str, field: str, snapshots: list[Db]) -> Iterator[Chan
                 former, latter, snap_former.is_floater
             )
         else:
-            severity, reason = Severity.for_field(field), None
+            severity, reason = Severity.for_field(field, former, latter)
 
         if severity == Severity.IGNORE:
             continue
