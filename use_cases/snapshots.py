@@ -69,7 +69,7 @@ class Record(NamedTuple):
 
 
 def print_diff(db: Db, *snapshots: Db, rich: bool = False) -> None:
-    print(stringify_diff(db, *snapshots, rich))
+    print(stringify_diff(db, *snapshots, rich=rich))
 
 
 def stringify_diff(db: Db, *snapshots: Db, rich: bool = False) -> None:
