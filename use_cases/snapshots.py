@@ -12,7 +12,7 @@ from pydantic import BaseModel
 from tabulate import tabulate
 from whatever import that
 
-from utils import now, read_json, write_json
+from utils import format_with_sign, now, read_json, write_json
 
 from .base import Db
 
@@ -238,7 +238,7 @@ def _get_severity_for_quote(former, latter) -> tuple[Severity, str]:
         case _:
             severity = Severity.IGNORE
 
-    return severity, f"{delta:+}"
+    return severity, format_with_sign(delta)
 
 
 def _get_severity_for_coupon(former, latter, is_floater) -> tuple[Severity, str]:
@@ -254,4 +254,4 @@ def _get_severity_for_coupon(former, latter, is_floater) -> tuple[Severity, str]
         case _:
             severity = Severity.LOW
 
-    return severity, f"{delta:+}"
+    return severity, format_with_sign(delta)
