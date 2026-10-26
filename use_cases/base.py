@@ -121,7 +121,7 @@ class Ticker(BaseModel):
 
     @property
     def has_outdated_prediction(self) -> bool:
-        return self.is_outdated or (
+        return self.is_outdated and (
             now().date() - self.prediction_date > OUTDATED_PREDICTION_CUTOFF
         )
 
