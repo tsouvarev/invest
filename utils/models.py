@@ -1,5 +1,5 @@
 from funcy import lmap
-from pydantic import TypeAdapter
+from pydantic import BaseModel, TypeAdapter
 from tabulate import tabulate
 
 
@@ -41,3 +41,7 @@ def dump_with_order[T](
         lmap(obj.model_dump(include=fields, context=context).get, fields)
         for obj in data
     ]
+
+
+def print_obj(obj: BaseModel) -> None:
+    print(tabulate(obj.model_dump().items()))

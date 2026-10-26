@@ -3,7 +3,7 @@ from .dicts import keys_dict, merge_as_dicts, merge_dicts
 from .dt import now
 from .files import read_file, read_file_or_none, read_json, write_json
 from .indicators import indicate_work
-from .models import dump_with_order, print_model_list
+from .models import dump_with_order, print_model_list, print_obj
 from .parsers import (
     localize_date,
     localize_digits,

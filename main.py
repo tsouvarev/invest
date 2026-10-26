@@ -25,6 +25,7 @@ from use_cases import (
     load_snapshot,
     print_blacklist,
     print_diff,
+    print_info,
     print_ratings,
     remove_from_blacklist,
     remove_from_known_duplicates,
@@ -147,6 +148,12 @@ async def ratings(
         await print_ratings(
             async_client, isin=isin, with_bond_actions=with_bond_actions
         )
+
+
+@bonds_app.command()
+async def info(isin: str) -> None:
+    async with async_client:
+        await print_info(async_client, isin=isin)
 
 
 @duplicates_app.command("find")

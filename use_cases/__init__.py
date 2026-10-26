@@ -20,6 +20,7 @@ from .duplicates import (
     list_known_duplicates,
     remove_from_known_duplicates,
 )
+from .info import print_info
 from .ratings import print_ratings
 from .search import search_tickers
 from .sheets import load_isins_from_sheet, write_info_to_sheet

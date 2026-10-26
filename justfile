@@ -28,6 +28,9 @@ upgrade:
 show *args:
     {{ RUN_INVEST }} bonds show {{ args }}
 
+info *args:
+    {{ RUN_INVEST }} bonds info {{ args }}
+
 dupes *args:
     {{ RUN_INVEST }} duplicates {{ args }}
 
