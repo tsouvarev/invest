@@ -87,6 +87,10 @@ async def get_cbr_info(
     infos = {}
     csrf_token = await get_cbr_csrf(client)
 
+    if csrf_token is None:
+        print("CBR not available, skipping ratings update")
+        return keys_dict(db, isins, cast_to=CbrInfo)
+
     caption = "Loading ratings from CBR"
     for isin in tqdm(missing_isins, caption):
         ticker = inns_db[isin]
@@ -199,14 +203,17 @@ async def _get_cbr_items(client: AsyncClient, csrf_token, inn: str) -> list[CbrD
     return predictions
 
 
-async def get_cbr_csrf(client: AsyncClient) -> str:
+async def get_cbr_csrf(client: AsyncClient) -> str | None:
     with indicate_work("Getting CSRF token for CBR"):
         response = await client.post(
             CONFIG["cbr"]["url"],
             params={"mode": "ajax", "c": "prr.form", "action": "searchRating"},
             data={"fields[ratingName]": "RU000A10B2D2"},
         )
-        return response.json()["errors"][0]["customData"]["csrf"]
+        if response.is_success:
+            return response.json()["errors"][0]["customData"]["csrf"]
+
+        return None
 
 
 @autocurry
