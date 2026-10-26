@@ -190,9 +190,13 @@ class SmartlabInfo(BaseModel):
 
 
 async def get_smartlab_info(
-    client: AsyncClient, db: dict, isins: list[str]
+    client: AsyncClient, *, db: dict, isins: list[str], update: bool = False
 ) -> dict[str, SmartlabInfo]:
-    outdated_isins, cached_isins = lsplit(_is_outdated(db), isins)
+    if update:
+        outdated_isins, cached_isins = isins, []
+    else:
+        outdated_isins, cached_isins = lsplit(_is_outdated(db), isins)
+
     pages = await _get_pages(client, outdated_isins)
     infos = {
         isin: SmartlabInfo(**_parse_page(response))

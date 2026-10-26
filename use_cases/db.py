@@ -77,6 +77,7 @@ async def load_from_db(
     client: AsyncClient,
     *,
     isins: list[str] | None = None,
+    update: bool = False,
     update_predictions: PredictionsUpdateMode = PredictionsUpdateMode.OUTDATED,
     update_inns: InnsUpdateMode = InnsUpdateMode.MISSING,
     skip_empty: bool = False,
@@ -92,11 +93,13 @@ async def load_from_db(
     # if tinkoff doesn't know about ticker, then we surely won't use it
     isins = lfilter(tinkoff_info.get, isins)
 
-    moex_info = await get_moex_info(client, db, isins, update_inns=update_inns)
-    cbr_info = await get_cbr_info(
-        client, db, moex_info, isins, update_predictions=update_predictions
+    moex_info = await get_moex_info(
+        client, db, isins, update_inns=update or update_inns
     )
-    smartlab_info = await get_smartlab_info(client, db, isins)
+    cbr_info = await get_cbr_info(
+        client, db, moex_info, isins, update_predictions=update or update_predictions
+    )
+    smartlab_info = await get_smartlab_info(client, db=db, isins=isins, update=update)
 
     for isin in isins:
         infos = [
