@@ -27,7 +27,7 @@ CONFIG = {
         },
     },
     "subfederal": {
-        "url": "https://smart-lab.ru/q/subfed/order_by_year_yield/desc/page{}/",
+        "url": "https://smart-lab.ru/q/subfed/order_by_year_yield/desc/",
         "pagination": False,
         "selectors": {
             "url": "main tr > td.trades-table__name > a",
