@@ -40,7 +40,11 @@ async def search_tickers(
     search_conditions = [
         ("Число выплат в год", 12),
         ("Месяцев в плюс", profitable_months),
+        ("Минимальный купон", min_yield),
+        ("Минимальный купон флоатера", min_floater_yield),
         ("Минимальный рейтинг", min_rating),
+        ("Исключить дубли компаний", exclude_duplicates),
+        ("Показать более выгодные дубли", show_better_duplicates),
         ("Включить высокодоходные", with_vdo),
         ("Включить put-оферты", with_put_offer),
         ("Включить call-оферты", with_call_offer),
