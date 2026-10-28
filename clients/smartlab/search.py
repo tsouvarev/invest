@@ -6,34 +6,19 @@ from httpxyz import AsyncClient
 
 from utils import indicate_work, select_many_from_response
 
+URL_SELECTOR = "main tr > td.trades-table__name > a"
 CONFIG = {
     "corporate": {
         "url": "https://smart-lab.ru/q/bonds/order_by_year_yield/desc/page{}/",
         "pagination": True,
-        "selectors": {
-            "url": "main tr > td.trades-table__name > a",
-            "coupon": "main table tr td:nth-child(6)",
-            "profitability": "main table tr td:nth-child(5)",
-            "grade": "main table tr td:nth-child(8)",
-        },
     },
     "federal": {
         "url": "https://smart-lab.ru/q/ofz/order_by_year_yield/desc/",
         "pagination": False,
-        "selectors": {
-            "url": "main tr > td.trades-table__name > a",
-            "coupon": "main table tr td:nth-child(8)",
-            "profitability": "main table tr td:nth-child(6)",
-        },
     },
     "subfederal": {
         "url": "https://smart-lab.ru/q/subfed/order_by_year_yield/desc/",
         "pagination": False,
-        "selectors": {
-            "url": "main tr > td.trades-table__name > a",
-            "coupon": "main table tr td:nth-child(7)",
-            "profitability": "main table tr td:nth-child(6)",
-        },
     },
 }
 
@@ -79,21 +64,19 @@ async def search_isins(
                 for page in count(1):
                     response = await client.get(conf["url"].format(page), params=params)
 
-                    paged_tickers = list(
-                        _parse_search_page(response, conf["selectors"])
-                    )
+                    paged_tickers = list(_parse_search_page(response))
                     if not paged_tickers:
                         break
 
                     isins.extend(paged_tickers)
             else:
                 response = await client.get(conf["url"], params=params)
-                isins.extend(_parse_search_page(response, conf["selectors"]))
+                isins.extend(_parse_search_page(response))
     return isins
 
 
-def _parse_search_page(response, selectors) -> Iterator[str]:
-    search_infos = select_many_from_response(response, [selectors["url"]])
+def _parse_search_page(response) -> Iterator[str]:
+    search_infos = select_many_from_response(response, [URL_SELECTOR])
     for el in search_infos:
         yield el[0].attrib["href"].rsplit("/")[-2]
 
