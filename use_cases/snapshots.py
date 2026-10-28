@@ -1,5 +1,5 @@
 from collections.abc import Iterator
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 from enum import IntEnum, auto
 from itertools import pairwise
@@ -158,16 +158,16 @@ def load_snapshot(dt: datetime) -> dict[str, Db]:
     return snapshot
 
 
-def get_last_snapshot() -> Db:
+def iter_snapshots(
+    *, exclude_today: bool = False, reverse: bool = False
+) -> Iterator[tuple[date, Db]]:
     path = Path("snapshots")
 
-    for day_path in sorted(path.iterdir(), reverse=True):
+    for day_path in sorted(path.iterdir(), reverse=reverse):
         day = datetime.fromisoformat(day_path.name)
-        if day.date() == now().date():
+        if exclude_today and day.date() == now().date():
             continue
-
-        return load_snapshot(day)
-    return None
+        yield day, load_snapshot(day)
 
 
 def diff_snapshots(*snapshots: Db) -> list[Change]:

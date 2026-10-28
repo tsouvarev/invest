@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Annotated
 
 from async_typer import AsyncTyper, Option
+from funcy import first
 
 from clients import async_client, send_message
 from use_cases import (
@@ -17,7 +18,7 @@ from use_cases import (
     add_to_known_duplicates,
     find_duplicates,
     get_blacklist,
-    get_last_snapshot,
+    iter_snapshots,
     list_known_duplicates,
     load_base_db,
     load_from_db,
@@ -124,7 +125,7 @@ async def show(
         print_model_list(tickers, fields=fields)
 
     if diff:
-        last_snapshot = get_last_snapshot()
+        _, last_snapshot = first(iter_snapshots(exclude_today=True, reverse=True))
         diff_str = stringify_diff(data, last_snapshot, data, rich=tg)
 
         if tg:
