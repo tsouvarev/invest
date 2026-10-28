@@ -20,6 +20,10 @@ CONFIG = {
         "url": "https://smart-lab.ru/q/subfed/order_by_year_yield/desc/",
         "pagination": False,
     },
+    "other": {
+        "url": "https://smart-lab.ru/q/other_bonds/order_by_year_yield/desc/",
+        "pagination": False,
+    },
 }
 
 
