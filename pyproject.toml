@@ -20,6 +20,7 @@ dependencies = [
   "tabulate",
   "tqdm",
   "typer",
+  "uniplot>=0.23.2",
   "whatever"
 ]
 

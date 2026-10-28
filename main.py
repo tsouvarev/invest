@@ -9,6 +9,7 @@ from funcy import first
 from clients import async_client, send_message
 from use_cases import (
     Db,
+    DrawField,
     EntryType,
     Grade,
     InnsUpdateMode,
@@ -16,6 +17,7 @@ from use_cases import (
     ShowField,
     add_to_blacklist,
     add_to_known_duplicates,
+    draw_series,
     find_duplicates,
     get_blacklist,
     iter_snapshots,
@@ -155,6 +157,11 @@ async def ratings(
 async def info(isin: str) -> None:
     async with async_client:
         await print_info(async_client, isin=isin)
+
+
+@bonds_app.command()
+def draw(isin: str, field: DrawField) -> None:
+    draw_series(isin, field)
 
 
 @duplicates_app.command("find")

@@ -13,6 +13,7 @@ from .db import (
     load_base_db,
     load_from_db,
 )
+from .draw import DrawField, draw_series
 from .duplicates import (
     add_to_known_duplicates,
     find_duplicates,

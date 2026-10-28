@@ -31,6 +31,9 @@ show *args:
 info *args:
     {{ RUN_INVEST }} bonds info {{ args }}
 
+draw *args:
+    {{ RUN_INVEST }} bonds draw {{ args }}
+
 dupes *args:
     {{ RUN_INVEST }} duplicates {{ args }}
 
