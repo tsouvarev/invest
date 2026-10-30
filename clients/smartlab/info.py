@@ -45,6 +45,14 @@ CONFIG = {
                 "article.quotes-info-list__item:nth-child(1) > div:nth-child(1) > "
                 "div:nth-child(8) > div:nth-child(2)"
             ),
+            "offer_date": (
+                "article.quotes-info-list__item:nth-child(1) > div:nth-child(1) > "
+                "div:nth-child(9) > div:nth-child(2)"
+            ),
+            "offer_type": (
+                "article.quotes-info-list__item:nth-child(1) > div:nth-child(1) > "
+                "div:nth-child(10) > div:nth-child(2)"
+            ),
             "sector": (
                 "article.quotes-info-list__item:nth-child(5) > div:nth-child(1) > "
                 "div:nth-child(3) > div:nth-child(2)"
@@ -221,6 +229,10 @@ def _parse_page(response):
         str(sel): select_one_from_response(response, path)
         for sel, path in selectors.items()
     }
+
+    if values["offer_type"].startswith("Call") and values["offer_date"]:
+        values["maturity_date"] = values["offer_date"]
+
     values["coupon"] = values["coupon"] or values["profitability"]
     del values["profitability"]
 

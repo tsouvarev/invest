@@ -16,7 +16,7 @@ from utils import format_with_sign, now, read_json, write_json
 
 from .base import Db
 
-type Value = int | Decimal | str
+type Value = int | Decimal | str | date
 
 
 class Severity(IntEnum):
