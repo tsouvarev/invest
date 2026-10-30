@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Annotated
 
 from async_typer import AsyncTyper, Option
-from funcy import first
+from funcy import first, take
 
 from clients import async_client, send_message
 from use_cases import (
@@ -257,10 +257,16 @@ async def search(
 
 
 @snaps_app.command("diff")
-async def diff_snaps(date: list[datetime]) -> None:
+async def diff_snaps(date: list[datetime] | None = None) -> None:
+    if date is None:
+        latter, former = (s for _, s in take(2, iter_snapshots(reverse=True)))
+        snapshots = [former, latter]
+    else:
+        snapshots = map(load_snapshot, date)
+
     async with async_client:
         db = await load_base_db(async_client)
-        print_diff(db, *map(load_snapshot, date))
+        print_diff(db, *snapshots)
 
 
 @blacklist_app.command("get")
