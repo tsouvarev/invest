@@ -12,7 +12,13 @@ from pydantic import BaseModel
 from tabulate import tabulate
 from whatever import that
 
-from utils import format_with_sign, now, read_json, write_json
+from utils import (
+    format_timedelta_with_sign,
+    format_with_sign,
+    now,
+    read_json,
+    write_json,
+)
 
 from .base import Db
 
@@ -35,11 +41,11 @@ class Severity(IntEnum):
             case "coupon":
                 return cls.MEDIUM, None
             case "maturity_date":
-                return cls.LOW, None
+                return cls.LOW, format_timedelta_with_sign(latter - former)
             case "quote" | "nominal":
                 return cls.LOW, format_with_sign(latter - former)
             case "prediction_date":
-                return cls.IGNORE, None
+                return cls.IGNORE, format_timedelta_with_sign(latter - former)
             case _:
                 raise ValueError(field)
 
