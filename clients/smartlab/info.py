@@ -4,7 +4,7 @@ from decimal import Decimal
 from enum import StrEnum, auto
 
 from asyncstdlib import zip as azip
-from funcy import autocurry, lsplit
+from funcy import curry, lsplit
 from httpxyz import AsyncClient
 from pydantic import BaseModel, ConfigDict, field_validator
 
@@ -239,7 +239,11 @@ def _parse_page(response):
     return values
 
 
-@autocurry
+@curry
 def _is_outdated(db: dict, isin: list[str]) -> bool:
     ticker = db.get(isin)
-    return not ticker or ticker.is_outdated
+
+    if ticker is None:
+        return False
+
+    return ticker.is_outdated

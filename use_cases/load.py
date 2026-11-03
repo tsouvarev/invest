@@ -1,4 +1,4 @@
-from funcy import compact, lfilter, project
+from funcy import compact, project
 from httpxyz import AsyncClient
 
 from clients import (
@@ -49,10 +49,6 @@ async def load_from_db(
         db = read_json(DB_PATH, cast_to=Db, initial={})
 
     tinkoff_info = await get_tinkoff_info(client, db, isins)
-
-    # if tinkoff doesn't know about ticker, then we surely won't use it
-    isins = lfilter(tinkoff_info.get, isins)
-
     moex_info = await get_moex_info(
         client, db, isins, update_inns=update or update_inns
     )

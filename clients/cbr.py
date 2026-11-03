@@ -3,7 +3,7 @@ from enum import StrEnum, auto
 from itertools import count
 from typing import Annotated
 
-from funcy import autocurry, lsplit
+from funcy import curry, lsplit
 from httpxyz import AsyncClient
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from tqdm import tqdm
@@ -216,7 +216,7 @@ async def get_cbr_csrf(client: AsyncClient) -> str | None:
         return None
 
 
-@autocurry
+@curry
 def _needs_update(db: dict, isin: list[str]) -> bool:
     # skip update only if entry is None or is outdated
     if isin not in db:
