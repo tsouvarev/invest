@@ -1,4 +1,5 @@
 from datetime import timedelta
+from io import StringIO
 from numbers import Number
 from sys import stdout
 from typing import IO, Any
@@ -55,7 +56,9 @@ def stringify_model_list[T](
         headers = get_model_fields(T)
         dumped = TypeAdapter(list[T]).dump_python(data, context=context)
 
-    return print_table(dumped, fields=headers, title=title, rich=rich)
+    with StringIO() as buffer:
+        print_table(dumped, fields=headers, title=title, rich=rich, buffer=buffer)
+        return buffer.getvalue()
 
 
 def print_table(
