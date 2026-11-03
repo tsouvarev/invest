@@ -45,3 +45,7 @@ def dump_with_order[T](
 
 def print_obj(obj: BaseModel) -> None:
     print(tabulate(obj.model_dump().items()))
+
+
+def get_model_fields(model: BaseModel) -> list[str]:
+    return type(model).model_fields

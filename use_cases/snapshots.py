@@ -15,6 +15,7 @@ from whatever import that
 from utils import (
     format_timedelta_with_sign,
     format_with_sign,
+    get_model_fields,
     now,
     read_json,
     write_json,
@@ -193,7 +194,7 @@ def diff_snapshots(*snapshots: Db) -> list[Change]:
 def _diff_for_isin(isin: str, *snapshots: Db) -> list[Change]:
     diff = []
 
-    for field in type(snapshots[0]).model_fields:
+    for field in get_model_fields(snapshots[0]):
         if field in {"isin", "ts", "company", "series", "inn", "type"}:
             continue
 
