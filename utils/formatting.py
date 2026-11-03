@@ -69,12 +69,10 @@ def print_table(
     rich: bool = False,
     buffer: IO = stdout,
 ) -> str | None:
-    table = Table(
-        title=f"\n{title}", box=MARKDOWN if rich else SIMPLE, show_header=False
-    )
+    table = Table(title=title, box=MARKDOWN if rich else SIMPLE, show_header=False)
 
     for field in fields:
-        table.add_column(field, no_wrap=True, overflow="fold")
+        table.add_column(field)
 
     for row in data:
         table.add_row(*map(_format_value, row))
@@ -82,7 +80,7 @@ def print_table(
     table.add_section()
 
     console = Console(file=buffer, force_terminal=not rich)
-    console.print(table)
+    console.print(table, soft_wrap=True, new_line_start=True)
 
 
 def _format_value(v: Any) -> str:
