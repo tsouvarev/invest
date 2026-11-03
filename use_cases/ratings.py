@@ -8,7 +8,7 @@ from clients import (
 )
 from utils import print_model_list
 
-from .db import load_from_db
+from .load import load_from_db
 
 
 async def print_ratings(

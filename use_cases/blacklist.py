@@ -16,7 +16,7 @@ from pydantic import (
 
 from utils import indicate_work, now, print_model_list, read_json, write_json
 
-from .db import load_base_db
+from .load import load_base_db
 
 DB_PATH = "blacklist.json"
 

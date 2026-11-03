@@ -2,7 +2,7 @@ from httpxyz import AsyncClient
 
 from utils import print_obj
 
-from .db import load_from_db
+from .load import load_from_db
 
 
 async def print_info(client: AsyncClient, *, isin: str) -> None:

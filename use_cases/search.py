@@ -8,8 +8,8 @@ from utils import now, print_table
 
 from .base import Db, Prediction, Ticker
 from .blacklist import Blacklist, is_in_blacklist
-from .db import PredictionsUpdateMode, load_base_db, load_from_db
 from .duplicates import get_canonical_name
+from .load import PredictionsUpdateMode, load_base_db, load_from_db
 
 
 async def search_tickers(
