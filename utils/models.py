@@ -1,37 +1,5 @@
 from funcy import lmap
-from pydantic import BaseModel, TypeAdapter
-from tabulate import tabulate
-
-
-def print_model_list[T](
-    data: list[T],
-    *,
-    fields: list[str] | None = None,
-    context: dict | None = None,
-    rich: bool = False,
-) -> None:
-    print(stringify_model_list(data, fields=fields, context=context, rich=rich))
-
-
-def stringify_model_list[T](
-    data: list[T],
-    *,
-    fields: list[str] | None = None,
-    context: dict | None = None,
-    rich: bool = False,
-) -> str:
-    if not data:
-        return "No data"
-
-    if fields:
-        headers = fields
-        dumped = dump_with_order(data, fields=fields, context=context)
-    else:
-        headers = "keys"
-        dumped = TypeAdapter(list[T]).dump_python(data, context=context)
-
-    tablefmt = "github" if rich else "tsv"
-    return tabulate(dumped, headers=headers, tablefmt=tablefmt)
+from pydantic import BaseModel
 
 
 def dump_with_order[T](
@@ -41,10 +9,6 @@ def dump_with_order[T](
         lmap(obj.model_dump(include=fields, context=context).get, fields)
         for obj in data
     ]
-
-
-def print_obj(obj: BaseModel) -> None:
-    print(tabulate(obj.model_dump().items()))
 
 
 def get_model_fields(model: BaseModel) -> list[str]:

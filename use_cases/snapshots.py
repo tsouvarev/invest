@@ -2,14 +2,14 @@ from collections.abc import Iterator
 from datetime import date, datetime
 from decimal import Decimal
 from enum import IntEnum, auto
+from io import StringIO
 from itertools import pairwise
 from pathlib import Path
 from textwrap import shorten
-from typing import Any, NamedTuple
+from typing import IO, Any, NamedTuple
 
 from funcy import concat, group_by
 from pydantic import BaseModel
-from tabulate import tabulate
 from whatever import that
 
 from utils import (
@@ -17,6 +17,7 @@ from utils import (
     format_with_sign,
     get_model_fields,
     now,
+    print_table,
     read_json,
     write_json,
 )
@@ -83,34 +84,32 @@ def print_diff(db: Db, *snapshots: Db, rich: bool = False) -> None:
     print(stringify_diff(db, *snapshots, rich=rich))
 
 
-def stringify_diff(db: Db, *snapshots: Db, rich: bool = False) -> None:
+def stringify_diff(db: Db, *snapshots: Db, rich: bool = False) -> str:
     all_changes: list[Change] = diff_snapshots(*snapshots)
 
     if not all_changes:
         return "Nothing to report"
 
-    res = ""
-    table = []
+    with StringIO() as buffer:
+        table = []
+        for severity, changes in group_by(that.severity, all_changes).items():
+            if rich:
+                _stringify_rich_diff(buffer, db, severity, changes)
+            else:
+                table += _stringify_plain_diff(db, severity, changes)
 
-    for severity, changes in group_by(that.severity, all_changes).items():
-        if rich:
-            table += _stringify_rich_diff(db, severity, changes)
-        else:
-            res += _stringify_plain_diff(db, severity, changes)
+        print_table(table, rich=False, buffer=buffer)
+        return buffer.getvalue()
 
-    if rich:
-        res = tabulate(
-            table,
-            colalign=[None, None, "right", "left", "left"],
-            tablefmt="unsafehtml",
+
+def _stringify_plain_diff(db: Db, severity: Severity, changes: list[Change]) -> None:
+    table = [
+        (
+            "",
+            f"\n[underline]{Severity.humanize(severity).upper()}[/underline]\n",
         )
-    return res
+    ]
 
-
-def _stringify_plain_diff(db: Db, severity: Severity, changes: list[Change]) -> str:
-    res = f"\n{Severity.humanize(severity)}\n\n"
-
-    table = []
     for field, field_changes in group_by(that.field, changes).items():
         for change in field_changes:
             ticker = db[change.isin]
@@ -120,12 +119,11 @@ def _stringify_plain_diff(db: Db, severity: Severity, changes: list[Change]) -> 
                 name += " (флоатер)"
 
             table.append((name, field, change.from_, change.to_, change.reason))
-
-    return res + tabulate(table, tablefmt="simple") + "\n"
+    return table
 
 
 def _stringify_rich_diff(
-    db: Db, severity: Severity, changes: list[Change]
+    buffer: IO, db: Db, severity: Severity, changes: list[Change]
 ) -> list[tuple]:
     header = f"<i><b>--- {Severity.humanize(severity)} ---</b></i>"
     table = [(header,)]
@@ -141,7 +139,13 @@ def _stringify_rich_diff(
 
             table.append((name, field, change.from_, change.to_, change.reason))
 
-    return table
+    return print_table(
+        table,
+        fields=["Бумага", "Поле", "Было", "Стало", "Причина"],
+        title=Severity.humanize(severity),
+        rich=True,
+        buffer=buffer,
+    )
 
 
 def write_snapshot(data: Db) -> None:
@@ -227,9 +231,9 @@ def _diff_for_field(isin: str, field: str, snapshots: list[Db]) -> Iterator[Chan
             isin=isin,
             field=field,
             from_ts=snap_former.ts.date(),
-            from_=getattr(snap_former, field),
+            from_=former,
             to_ts=snap_latter.ts.date(),
-            to_=getattr(snap_latter, field),
+            to_=latter,
         )
 
 

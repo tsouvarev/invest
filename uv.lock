@@ -2,10 +2,6 @@ version = 1
 revision = 5
 requires-python = ">=3.15"
 
-[options]
-exclude-newer = "0001-01-01T00:00:00Z" # This has no effect and is included for backwards compatibility when using relative exclude-newer values.
-exclude-newer-span = "-P7D"
-
 [[package]]
 name = "aiofiles"
 version = "25.1.0"
@@ -597,7 +593,6 @@ dependencies = [
     { name = "pydantic" },
     { name = "python-dateutil" },
     { name = "pytz" },
-    { name = "tabulate" },
     { name = "tqdm" },
     { name = "typer" },
     { name = "uniplot" },
@@ -615,7 +610,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "aiogram", specifier = ">=3.31.0" },
+    { name = "aiogram" },
     { name = "async-typer" },
     { name = "asyncstdlib" },
     { name = "cssselect" },
@@ -625,15 +620,14 @@ requires-dist = [
     { name = "google-auth-oauthlib" },
     { name = "httpx-retries" },
     { name = "httpxyz" },
-    { name = "humanize", specifier = ">=4.16.0" },
+    { name = "humanize" },
     { name = "lxml" },
     { name = "pydantic" },
-    { name = "python-dateutil", specifier = ">=3.0.0" },
-    { name = "pytz", specifier = ">=2026.3.post1" },
-    { name = "tabulate" },
+    { name = "python-dateutil" },
+    { name = "pytz" },
     { name = "tqdm" },
     { name = "typer" },
-    { name = "uniplot", specifier = ">=0.23.2" },
+    { name = "uniplot" },
     { name = "whatever" },
 ]
 
@@ -1316,15 +1310,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/28/e3/55dcc2cfbc3ca9c29519eb6884dd1415ecb53b0e934862d3559ddcb7e20b/stack_data-0.6.3.tar.gz", hash = "sha256:836a778de4fec4dcd1dcd89ed8abff8a221f58308462e1c4aa2a3cf30148f0b9", size = 44707, upload-time = "2023-09-30T13:58:05.479Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/f1/7b/ce1eafaf1a76852e2ec9b22edecf1daa58175c090266e9f6c64afcd81d91/stack_data-0.6.3-py3-none-any.whl", hash = "sha256:d5558e0c25a4cb0853cddad3d77da9891a08cb85dd9f9f91b9f8cd66e511e695", size = 24521, upload-time = "2023-09-30T13:58:03.53Z" },
-]
-
-[[package]]
-name = "tabulate"
-version = "0.10.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/46/58/8c37dea7bbf769b20d58e7ace7e5edfe65b849442b00ffcdd56be88697c6/tabulate-0.10.0.tar.gz", hash = "sha256:e2cfde8f79420f6deeffdeda9aaec3b6bc5abce947655d17ac662b126e48a60d", size = 91754, upload-time = "2026-03-04T18:55:34.402Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/99/55/db07de81b5c630da5cbf5c7df646580ca26dfaefa593667fc6f2fe016d2e/tabulate-0.10.0-py3-none-any.whl", hash = "sha256:f0b0622e567335c8fabaaa659f1b33bcb6ddfe2e496071b743aa113f8774f2d3", size = 39814, upload-time = "2026-03-04T18:55:31.284Z" },
 ]
 
 [[package]]

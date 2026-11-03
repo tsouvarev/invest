@@ -1,11 +1,10 @@
 from math import ceil
 
 from funcy import group_by, walk_values
-from tabulate import tabulate
 from whatever import that
 
 from clients import search_isins
-from utils import now
+from utils import now, print_table
 
 from .base import Db, Prediction, Ticker
 from .blacklist import Blacklist, is_in_blacklist
@@ -58,7 +57,7 @@ async def search_tickers(
         ("Включить дисконтные", with_discount),
         ("Включить конвертируемые", with_convertible),
     ]
-    print("\nУсловия поиска\n", tabulate(search_conditions))
+    print_table(search_conditions, title="Условия поиска")
 
     isins = await search_isins(
         client,
