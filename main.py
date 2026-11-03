@@ -1,4 +1,5 @@
 from datetime import datetime
+from enum import StrEnum, auto, nonmember
 from functools import partial
 from pathlib import Path
 from typing import Annotated
@@ -14,7 +15,6 @@ from use_cases import (
     Grade,
     InnsUpdateMode,
     PredictionsUpdateMode,
-    ShowField,
     add_to_blacklist,
     add_to_known_duplicates,
     draw_series,
@@ -74,6 +74,38 @@ app.add_typer(duplicates_app, name="duplicates")
 show_opt = partial(env_option, common_envs=COMMON_ENVS, prefix="SHOW")
 find_opt = partial(env_option, common_envs=COMMON_ENVS, prefix="FIND")
 search_opt = partial(env_option, common_envs=COMMON_ENVS, prefix="SEARCH")
+
+
+class ShowField(StrEnum):
+    NAME = auto()
+    ISIN = auto()
+    TYPE = auto()
+    GRADE = auto()
+    PROFITABILITY = auto()
+    COUPON = auto()
+    QUOTE = auto()
+    NOMINAL = auto()
+    MATURITY_DATE = auto()
+    SECTOR = auto()
+    PREDICTION = auto()
+    PREDICTION_DATE = auto()
+
+    default = nonmember(
+        [
+            NAME,
+            ISIN,
+            TYPE,
+            GRADE,
+            COUPON,
+            QUOTE,
+            NOMINAL,
+            MATURITY_DATE,
+            SECTOR,
+            PREDICTION,
+            PREDICTION_DATE,
+        ]
+    )
+    base = nonmember([NAME])
 
 
 @bonds_app.command()

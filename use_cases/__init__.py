@@ -18,7 +18,6 @@ from .info import print_info
 from .load import (
     InnsUpdateMode,
     PredictionsUpdateMode,
-    ShowField,
     load_base_db,
     load_from_db,
 )

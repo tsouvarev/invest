@@ -1,5 +1,3 @@
-from enum import StrEnum, auto, nonmember
-
 from funcy import compact, lfilter, project
 from httpxyz import AsyncClient
 
@@ -25,38 +23,6 @@ from utils import (
 from .base import Db, Ticker
 
 DB_PATH = "db.json"
-
-
-class ShowField(StrEnum):
-    NAME = auto()
-    ISIN = auto()
-    TYPE = auto()
-    GRADE = auto()
-    PROFITABILITY = auto()
-    COUPON = auto()
-    QUOTE = auto()
-    NOMINAL = auto()
-    MATURITY_DATE = auto()
-    SECTOR = auto()
-    PREDICTION = auto()
-    PREDICTION_DATE = auto()
-
-    default = nonmember(
-        [
-            NAME,
-            ISIN,
-            TYPE,
-            GRADE,
-            COUPON,
-            QUOTE,
-            NOMINAL,
-            MATURITY_DATE,
-            SECTOR,
-            PREDICTION,
-            PREDICTION_DATE,
-        ]
-    )
-    base = nonmember([NAME])
 
 
 async def load_base_db(client: AsyncClient, *, isins: list[str] = []) -> Db:
