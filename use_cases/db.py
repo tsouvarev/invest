@@ -59,10 +59,7 @@ class ShowField(StrEnum):
     base = nonmember([NAME])
 
 
-async def load_base_db(client: AsyncClient, *, isins: list[str] | None = None) -> Db:
-    if isins is None:
-        isins = []
-
+async def load_base_db(client: AsyncClient, *, isins: list[str] = []) -> Db:
     with indicate_work("Loading DB"):
         db = read_json(DB_PATH, cast_to=Db, initial={})
 
@@ -76,15 +73,12 @@ async def load_base_db(client: AsyncClient, *, isins: list[str] | None = None) -
 async def load_from_db(
     client: AsyncClient,
     *,
-    isins: list[str] | None = None,
+    isins: list[str] = [],
     update: bool = False,
     update_predictions: PredictionsUpdateMode = PredictionsUpdateMode.OUTDATED,
     update_inns: InnsUpdateMode = InnsUpdateMode.MISSING,
     skip_empty: bool = False,
 ) -> Db:
-    if isins is None:
-        isins = []
-
     with indicate_work("Loading DB"):
         db = read_json(DB_PATH, cast_to=Db, initial={})
 

@@ -20,6 +20,7 @@ ignore = [
   "magic-value-comparison",
   "map-without-explicit-strict",
   "missing-trailing-comma",
+  "mutable-argument-default",
   "print",
   "private-member-access",
   "pytest-incorrect-pytest-import",
