@@ -13,12 +13,14 @@ from pydantic import BaseModel
 from whatever import that
 
 from utils import (
+    better,
     format_timedelta_with_sign,
     format_with_sign,
     get_model_fields,
     now,
     print_table,
     read_json,
+    worse,
     write_json,
 )
 
@@ -225,6 +227,8 @@ def _diff_for_field(isin: str, field: str, snapshots: list[Db]) -> Iterator[Chan
         if severity == Severity.IGNORE:
             continue
 
+        colored = better if former < latter else worse
+
         yield Change(
             severity=severity,
             reason=reason,
@@ -233,7 +237,7 @@ def _diff_for_field(isin: str, field: str, snapshots: list[Db]) -> Iterator[Chan
             from_ts=snap_former.ts.date(),
             from_=former,
             to_ts=snap_latter.ts.date(),
-            to_=latter,
+            to_=colored(latter),
         )
 
 

@@ -74,9 +74,30 @@ def print_table(
         table.add_column(field, no_wrap=True, overflow="fold")
 
     for row in data:
-        table.add_row(*map(str, row))
+        table.add_row(*map(_format_value, row))
 
     table.add_section()
 
     console = Console(file=buffer, force_terminal=not rich)
     console.print(table)
+
+
+def _format_value(v: Any) -> str:
+    match v:
+        case bool():
+            return check if v else cross
+        case _:
+            f = str
+
+    return f(v)
+
+
+@autocurry
+def colored(color, v):
+    return f"[{color}]{v}[/{color}]"
+
+
+better = colored("bright_green")
+worse = colored("bright_red")
+check = better("v")
+cross = worse("x")
