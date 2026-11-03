@@ -87,12 +87,12 @@ async def search_tickers(
     if exclude_duplicates:
         _drop_duplicated_companies(new_tickers)
 
+    _drop_too_little_yield(new_tickers, min_yield, min_floater_yield)
     _drop_too_little_profitable_months(new_tickers, profitable_months)
 
     _drop_blacklisted_companies_and_isins(new_tickers, blacklist)
     _drop_bad_predictions(new_tickers)
     _drop_bad_quotes(new_tickers)
-    _drop_too_little_yield(new_tickers, min_yield, min_floater_yield)
 
     if show_better_duplicates:
         await _drop_worse_duplicates(client, new_tickers, used_isins)
