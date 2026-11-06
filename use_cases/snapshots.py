@@ -8,7 +8,7 @@ from pathlib import Path
 from textwrap import shorten
 from typing import IO, Any, NamedTuple
 
-from funcy import concat, group_by
+from funcy import compact, concat, group_by
 from pydantic import BaseModel
 from whatever import that
 
@@ -38,18 +38,18 @@ class Severity(IntEnum):
     @classmethod
     def for_field(
         cls, field: str, former: Value, latter: Value
-    ) -> tuple[Severity, str | None]:
+    ) -> Iterator[tuple[Severity, str | None]]:
         match field:
             case "grade" | "prediction" | "sector":
-                return cls.HIGH, None
+                yield cls.HIGH, None
             case "coupon":
-                return cls.MEDIUM, None
+                yield cls.MEDIUM, format_with_sign(latter - former)
             case "maturity_date":
-                return cls.LOW, format_timedelta_with_sign(latter - former)
+                yield cls.LOW, format_timedelta_with_sign(latter - former)
             case "quote" | "nominal":
-                return cls.LOW, format_with_sign(latter - former)
+                yield cls.LOW, format_with_sign(latter - former)
             case "prediction_date":
-                return cls.IGNORE, format_timedelta_with_sign(latter - former)
+                yield cls.IGNORE, format_timedelta_with_sign(latter - former)
             case _:
                 raise ValueError(field)
 
@@ -216,14 +216,17 @@ def _diff_for_field(isin: str, field: str, snapshots: list[Db]) -> Iterator[Chan
             continue
 
         if field == "quote":
-            severity, reason = _get_severity_for_quote(former, latter)
+            field_severities = _get_severities_for_quote(former, latter)
         elif field == "coupon":
-            severity, reason = _get_severity_for_coupon(
+            field_severities = _get_severities_for_coupon(
                 former, latter, snap_former.is_floater
             )
         else:
-            severity, reason = Severity.for_field(field, former, latter)
+            field_severities = Severity.for_field(field, former, latter)
 
+        severities, reasons = zip(*sorted(field_severities))
+
+        severity = severities[0]
         if severity == Severity.IGNORE:
             continue
 
@@ -231,7 +234,7 @@ def _diff_for_field(isin: str, field: str, snapshots: list[Db]) -> Iterator[Chan
 
         yield Change(
             severity=severity,
-            reason=reason,
+            reason=", ".join(compact(reasons)),
             isin=isin,
             field=field,
             from_ts=snap_former.ts.date(),
@@ -241,12 +244,11 @@ def _diff_for_field(isin: str, field: str, snapshots: list[Db]) -> Iterator[Chan
         )
 
 
-def _get_severity_for_quote(former, latter) -> tuple[Severity, str]:
+def _get_severities_for_quote(former, latter) -> Iterator[tuple[Severity, str]]:
     if former < 70 or latter < 70:
-        return Severity.HIGH, "<70"
-
-    if former < 80 or latter < 80:
-        return Severity.MEDIUM, "<80"
+        yield Severity.HIGH, "<70"
+    elif former < 80 or latter < 80:
+        yield Severity.MEDIUM, "<80"
 
     delta = latter - former
     match abs(delta):
@@ -257,12 +259,14 @@ def _get_severity_for_quote(former, latter) -> tuple[Severity, str]:
         case _:
             severity = Severity.IGNORE
 
-    return severity, format_with_sign(delta)
+    yield severity, format_with_sign(delta)
 
 
-def _get_severity_for_coupon(former, latter, is_floater) -> tuple[Severity, str]:
+def _get_severities_for_coupon(
+    former, latter, is_floater
+) -> Iterator[tuple[Severity, str]]:
     if not is_floater and (former < 15 or latter < 15):
-        return Severity.HIGH, "<15"
+        yield Severity.HIGH, "<15"
 
     delta = latter - former
     match abs(delta):
@@ -273,4 +277,4 @@ def _get_severity_for_coupon(former, latter, is_floater) -> tuple[Severity, str]
         case _:
             severity = Severity.LOW
 
-    return severity, format_with_sign(delta)
+    yield severity, format_with_sign(delta)
