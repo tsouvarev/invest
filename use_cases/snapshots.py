@@ -212,11 +212,11 @@ def _diff_for_isin(isin: str, *snapshots: Db) -> list[Change]:
 def _diff_for_field(isin: str, field: str, snapshots: list[Db]) -> Iterator[Change]:
     for snap_former, snap_latter in pairwise(snapshots):
         former, latter = getattr(snap_former, field), getattr(snap_latter, field)
-        if former == latter:
-            continue
 
         if field == "quote":
             field_severities = _get_severities_for_quote(former, latter)
+        elif former == latter:
+            continue
         elif field == "coupon":
             field_severities = _get_severities_for_coupon(
                 former, latter, snap_former.is_floater
@@ -274,6 +274,8 @@ def _get_severities_for_coupon(
             severity = Severity.IGNORE
         case v if not is_floater and v > 5:
             severity = Severity.HIGH
+        case 0:
+            severity = Severity.IGNORE
         case _:
             severity = Severity.LOW
 
