@@ -21,7 +21,7 @@ dependencies = [
   "tqdm",
   "typer",
   "uniplot",
-  "whatever"
+  "whatever",
 ]
 
 [dependency-groups]
@@ -30,5 +30,5 @@ dev = [
   "mdformat",
   "mdformat-myst",
   "ruff",
-  "toml-sort"
+  "toml-sort",
 ]

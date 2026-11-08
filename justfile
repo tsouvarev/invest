@@ -8,7 +8,7 @@ format:
     {{ RUN }} ruff format .
     {{ RUN }} ruff check . --fix-only --unsafe-fixes
     just --fmt
-    {{ RUN }} toml-sort *.toml --in-place --all --sort-first preview,select,project,name,version,requires-python
+    {{ RUN }} toml-sort *.toml --in-place --all --sort-first preview,select,project,name,version,requires-python --trailing-comma-inline-array
     {{ RUN }} mdformat docs
 
 check:

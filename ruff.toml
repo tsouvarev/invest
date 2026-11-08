@@ -31,12 +31,12 @@ ignore = [
   "typing-only-third-party-import",
   "unused-function-argument",
   "unused-lambda-argument",
-  "zip-without-explicit-strict"
+  "zip-without-explicit-strict",
 ]
 
 [lint.per-file-ignores]
 "**/__init__.py" = [
-  "unused-import"
+  "unused-import",
 ]
 "main.py" = [
   "boolean-default-value-positional-argument",
@@ -46,5 +46,5 @@ ignore = [
   "constant-imported-as-non-constant",
   "function-call-in-default-argument",
   "too-many-arguments",
-  "too-many-positional-arguments"
+  "too-many-positional-arguments",
 ]
