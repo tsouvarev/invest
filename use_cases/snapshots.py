@@ -6,9 +6,9 @@ from io import StringIO
 from itertools import pairwise
 from pathlib import Path
 from textwrap import shorten
-from typing import IO, Any, NamedTuple
+from typing import IO, NamedTuple
 
-from funcy import compact, concat, group_by
+from funcy import compact, concat, first, group_by, lfilter
 from pydantic import BaseModel
 from whatever import that
 
@@ -29,11 +29,20 @@ from .base import Db
 type Value = int | Decimal | str | date
 
 
+class ReasonedSeverity(NamedTuple):
+    severity: Severity
+    reason: str | None
+
+
 class Severity(IntEnum):
     HIGH = auto()
     MEDIUM = auto()
     LOW = auto()
     IGNORE = auto()
+
+    @property
+    def is_valuable(self) -> bool:
+        return self != self.IGNORE
 
     @classmethod
     def for_field(
@@ -41,15 +50,19 @@ class Severity(IntEnum):
     ) -> Iterator[tuple[Severity, str | None]]:
         match field:
             case "grade" | "prediction" | "sector":
-                yield cls.HIGH, None
+                yield ReasonedSeverity(cls.HIGH, None)
             case "coupon":
-                yield cls.MEDIUM, format_with_sign(latter - former)
+                yield ReasonedSeverity(cls.MEDIUM, format_with_sign(latter - former))
             case "maturity_date":
-                yield cls.LOW, format_timedelta_with_sign(latter - former)
+                yield ReasonedSeverity(
+                    cls.LOW, format_timedelta_with_sign(latter - former)
+                )
             case "quote" | "nominal":
-                yield cls.LOW, format_with_sign(latter - former)
+                yield ReasonedSeverity(cls.LOW, format_with_sign(latter - former))
             case "prediction_date":
-                yield cls.IGNORE, format_timedelta_with_sign(latter - former)
+                yield ReasonedSeverity(
+                    cls.IGNORE, format_timedelta_with_sign(latter - former)
+                )
             case _:
                 raise ValueError(field)
 
@@ -73,13 +86,6 @@ class Change(BaseModel):
     from_ts: datetime
     to_: Value
     to_ts: datetime
-
-
-class Record(NamedTuple):
-    name: str
-    field: str
-    from_: Any
-    to_: Any
 
 
 def print_diff(db: Db, *snapshots: Db, rich: bool = False) -> None:
@@ -214,26 +220,25 @@ def _diff_for_field(isin: str, field: str, snapshots: list[Db]) -> Iterator[Chan
         former, latter = getattr(snap_former, field), getattr(snap_latter, field)
 
         if field == "quote":
-            field_severities = _get_severities_for_quote(former, latter)
+            reasoned_severities = _get_severities_for_quote(former, latter)
         elif former == latter:
             continue
         elif field == "coupon":
-            field_severities = _get_severities_for_coupon(
+            reasoned_severities = _get_severities_for_coupon(
                 former, latter, snap_former.is_floater
             )
         else:
-            field_severities = Severity.for_field(field, former, latter)
+            reasoned_severities = Severity.for_field(field, former, latter)
 
-        severities, reasons = zip(*sorted(field_severities))
-
-        severity = severities[0]
-        if severity == Severity.IGNORE:
+        valuable_severities = lfilter(that.severity.is_valuable, reasoned_severities)
+        if not valuable_severities:
             continue
 
+        severities, reasons = zip(*sorted(valuable_severities))
         colored = better if former < latter else worse
 
         yield Change(
-            severity=severity,
+            severity=first(severities),
             reason=", ".join(compact(reasons)),
             isin=isin,
             field=field,
@@ -244,11 +249,11 @@ def _diff_for_field(isin: str, field: str, snapshots: list[Db]) -> Iterator[Chan
         )
 
 
-def _get_severities_for_quote(former, latter) -> Iterator[tuple[Severity, str]]:
+def _get_severities_for_quote(former, latter) -> Iterator[ReasonedSeverity]:
     if former < 70 or latter < 70:
-        yield Severity.HIGH, "<70"
+        yield ReasonedSeverity(Severity.HIGH, "<70")
     elif former < 80 or latter < 80:
-        yield Severity.MEDIUM, "<80"
+        yield ReasonedSeverity(Severity.MEDIUM, "<80")
 
     delta = latter - former
     match abs(delta):
@@ -259,14 +264,14 @@ def _get_severities_for_quote(former, latter) -> Iterator[tuple[Severity, str]]:
         case _:
             severity = Severity.IGNORE
 
-    yield severity, format_with_sign(delta)
+    yield ReasonedSeverity(severity, format_with_sign(delta))
 
 
 def _get_severities_for_coupon(
     former, latter, is_floater
-) -> Iterator[tuple[Severity, str]]:
+) -> Iterator[ReasonedSeverity]:
     if not is_floater and (former < 15 or latter < 15):
-        yield Severity.HIGH, "<15"
+        yield ReasonedSeverity(Severity.HIGH, "<15")
 
     delta = latter - former
     match abs(delta):
@@ -279,4 +284,4 @@ def _get_severities_for_coupon(
         case _:
             severity = Severity.LOW
 
-    yield severity, format_with_sign(delta)
+    yield ReasonedSeverity(severity, format_with_sign(delta))
