@@ -14,8 +14,8 @@ from rich.table import Table
 from .models import dump_with_order, get_model_fields
 
 
-def format_with_sign(v: Number) -> str:
-    return f"{v:+}"
+def format_with_sign(v: Number, precision: int = 2) -> str:
+    return f"{v:+.{precision}f}"
 
 
 def format_timedelta_with_sign(delta: timedelta) -> str:

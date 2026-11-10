@@ -223,6 +223,8 @@ def _diff_for_field(isin: str, field: str, snapshots: list[Db]) -> Iterator[Chan
             reasoned_severities = _get_severities_for_quote(former, latter)
         elif former == latter:
             continue
+        elif field == "nominal":
+            reasoned_severities = _get_severities_for_nominal(former, latter)
         elif field == "coupon":
             reasoned_severities = _get_severities_for_coupon(
                 former, latter, snap_former.is_floater
@@ -285,3 +287,8 @@ def _get_severities_for_coupon(
             severity = Severity.LOW
 
     yield ReasonedSeverity(severity, format_with_sign(delta))
+
+
+def _get_severities_for_nominal(former, latter) -> Iterator[ReasonedSeverity]:
+    delta = (latter - former) / former * 100
+    yield ReasonedSeverity(Severity.LOW, f"{format_with_sign(delta, precision=0)}%")
