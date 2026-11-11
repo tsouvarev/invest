@@ -20,6 +20,7 @@ from utils import (
     now,
     print_table,
     read_json,
+    same,
     worse,
     write_json,
 )
@@ -237,7 +238,13 @@ def _diff_for_field(isin: str, field: str, snapshots: list[Db]) -> Iterator[Chan
             continue
 
         severities, reasons = zip(*sorted(valuable_severities))
-        colored = better if former < latter else worse
+
+        if former < latter:
+            colored = better
+        elif former > latter:
+            colored = worse
+        else:
+            colored = same
 
         yield Change(
             severity=first(severities),

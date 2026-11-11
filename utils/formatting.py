@@ -100,5 +100,6 @@ def colored(color, v):
 
 better = colored("bright_green")
 worse = colored("bright_red")
+same = colored("bright_yellow")
 check = better("v")
 cross = worse("x")
