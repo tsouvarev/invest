@@ -111,7 +111,7 @@ def stringify_diff(db: Db, *snapshots: Db, rich: bool = False) -> str:
         return buffer.getvalue()
 
 
-def _stringify_plain_diff(db: Db, severity: Severity, changes: list[Change]) -> None:
+def _stringify_plain_diff(db: Db, severity: Severity, changes: list[Change]) -> list:
     table = [
         (
             "",
@@ -119,15 +119,13 @@ def _stringify_plain_diff(db: Db, severity: Severity, changes: list[Change]) -> 
         )
     ]
 
-    for field, field_changes in group_by(that.field, changes).items():
-        for change in field_changes:
-            ticker = db[change.isin]
+    for change in sorted(changes, key=that.field):
+        ticker = db[change.isin]
+        name = ticker.name
+        if ticker.is_floater and change.field == "coupon":
+            name += " (флоатер)"
 
-            name = ticker.name
-            if ticker.is_floater and field == "coupon":
-                name += " (флоатер)"
-
-            table.append((name, field, change.from_, change.to_, change.reason))
+        table.append((name, change.field, change.from_, change.to_, change.reason))
     return table
 
 
@@ -137,16 +135,15 @@ def _stringify_rich_diff(
     header = f"<i><b>--- {Severity.humanize(severity)} ---</b></i>"
     table = [(header,)]
 
-    for field, field_changes in group_by(that.field, changes).items():
-        for change in field_changes:
-            ticker = db[change.isin]
+    for change in sorted(changes, key=that.field):
+        ticker = db[change.isin]
 
-            company = shorten(ticker.company, width=15, break_long_words=False)
-            name = f"{company} <sup>{ticker.series}</sup>"
-            if ticker.is_floater and field == "coupon":
-                name = f"(ф) {name}"
+        company = shorten(ticker.company, width=15, break_long_words=False)
+        name = f"{company} <sup>{ticker.series}</sup>"
+        if ticker.is_floater and change.field == "coupon":
+            name = f"(ф) {name}"
 
-            table.append((name, field, change.from_, change.to_, change.reason))
+        table.append((name, change.field, change.from_, change.to_, change.reason))
 
     return print_table(
         table,
