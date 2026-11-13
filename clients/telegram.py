@@ -1,5 +1,5 @@
-from aiogram import Bot
-from aiogram.types import InputRichMessage
+lazy from aiogram import Bot
+lazy from aiogram.types import InputRichMessage
 
 
 async def send_message(token, chat_id, message):

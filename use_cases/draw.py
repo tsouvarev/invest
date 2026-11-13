@@ -1,6 +1,6 @@
 from enum import StrEnum, auto
 
-from uniplot import plot
+lazy from uniplot import plot
 
 from .snapshots import iter_snapshots
 

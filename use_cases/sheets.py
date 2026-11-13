@@ -3,9 +3,9 @@ from collections.abc import Callable
 from functools import cache
 
 from funcy import lcat, lfilter
-from google.oauth2.service_account import Credentials
-from googleapiclient.discovery import Resource, build
 from pydantic import BaseModel
+lazy from google.oauth2.service_account import Credentials
+lazy from googleapiclient.discovery import Resource, build
 
 from utils import dump_with_order, indicate_work
 
