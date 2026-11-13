@@ -12,10 +12,13 @@ from pydantic import (
 from clients import BondType, Grade, Prediction, Sector
 from utils import localize_date, localize_digits, localize_percents, now
 
-type Db = dict[str, Ticker | None]
-
 OUTDATED_PREDICTION_CUTOFF = timedelta(days=200)
 OUTDATED_CUTOFF = timedelta(hours=2)
+
+type Db = dict[str, Ticker | None]
+type Value = (
+    int | str | date | datetime | Decimal | Prediction | Grade | BondType | Sector
+)
 
 
 class Ticker(BaseModel):

@@ -1,3 +1,4 @@
+from collections import defaultdict
 from collections.abc import Iterator
 from datetime import date, datetime
 from decimal import Decimal
@@ -8,7 +9,7 @@ from pathlib import Path
 from textwrap import shorten
 from typing import IO, NamedTuple
 
-from funcy import compact, concat, first, group_by, lfilter
+from funcy import compact, first, group_by, lfilter
 from pydantic import BaseModel
 from whatever import that
 
@@ -94,7 +95,7 @@ def print_diff(db: Db, *snapshots: Db, rich: bool = False) -> None:
 
 
 def stringify_diff(db: Db, *snapshots: Db, rich: bool = False) -> str:
-    all_changes: list[Change] = diff_snapshots(*snapshots)
+    all_changes: list[Change] = diff_snapshots(*compact(snapshots))
 
     if not all_changes:
         return "Nothing to report"
@@ -188,16 +189,17 @@ def iter_snapshots(
 
 
 def diff_snapshots(*snapshots: Db) -> list[Change]:
-    diff = []
-    snapshots = [s for s in snapshots if s is not None]
+    isin_snapshots = defaultdict(list)
 
-    for isin in sorted(set(concat(*snapshots))):
-        isin_snapshots = [s.get(isin) for s in snapshots if isin in s]
-        if not isin_snapshots:
-            continue
+    for snapshot in snapshots:
+        for isin, ticker in snapshot.items():
+            isin_snapshots[isin].append(ticker)
 
-        diff.extend(_diff_for_isin(isin, *isin_snapshots))
-
+    diff = [
+        *_diff_for_isin(isin, isin_snaps)
+        for isin, isin_snaps in isin_snapshots.items()
+        if len(isin_snaps) > 1
+    ]
     return sorted(diff, key=that.severity)
 
 
