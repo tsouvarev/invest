@@ -1,7 +1,6 @@
 from collections import defaultdict
 from collections.abc import Iterator
 from datetime import date, datetime
-from decimal import Decimal
 from enum import IntEnum, auto
 from io import StringIO
 from itertools import pairwise
@@ -26,9 +25,7 @@ from utils import (
     write_json,
 )
 
-from .base import Db
-
-type Value = int | Decimal | str | date
+from .base import Db, Ticker, Value
 
 
 class ReasonedSeverity(NamedTuple):
@@ -203,20 +200,22 @@ def diff_snapshots(*snapshots: Db) -> list[Change]:
     return sorted(diff, key=that.severity)
 
 
-def _diff_for_isin(isin: str, *snapshots: Db) -> list[Change]:
+def _diff_for_isin(isin: str, isin_snapshots: list[Ticker]) -> list[Change]:
     diff = []
 
-    for field in get_model_fields(snapshots[0]):
+    for field in get_model_fields(isin_snapshots[0]):
         if field in {"isin", "ts", "company", "series", "inn", "type"}:
             continue
 
-        diff.extend(_diff_for_field(isin, field, snapshots))
+        diff.extend(_diff_for_field(isin, field, isin_snapshots))
 
     return diff
 
 
-def _diff_for_field(isin: str, field: str, snapshots: list[Db]) -> Iterator[Change]:
-    for snap_former, snap_latter in pairwise(snapshots):
+def _diff_for_field(
+    isin: str, field: str, isin_snapshots: list[Ticker]
+) -> Iterator[Change]:
+    for snap_former, snap_latter in pairwise(isin_snapshots):
         former, latter = getattr(snap_former, field), getattr(snap_latter, field)
 
         if field == "quote":

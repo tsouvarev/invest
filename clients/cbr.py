@@ -9,7 +9,14 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 from tqdm import tqdm
 from whatever import that
 
-from utils import has_prefixes, indicate_work, keys_dict, now, parse_date
+from utils import (
+    ReverseOrderedEnum,
+    has_prefixes,
+    indicate_work,
+    keys_dict,
+    now,
+    parse_date,
+)
 
 from .moex import MoexInfo
 
@@ -29,11 +36,11 @@ class PredictionsUpdateMode(StrEnum):
     ALL = auto()
 
 
-class Prediction(StrEnum):
+class Prediction(ReverseOrderedEnum, StrEnum):
+    POSITIVE = auto()
     STABLE = auto()
     UNKNOWN = auto()
     NEGATIVE = auto()
-    POSITIVE = auto()
     WITHDRAWN = auto()
 
 

@@ -10,6 +10,7 @@ from pydantic import BaseModel, ConfigDict, field_validator
 
 from clients.web import Request, get_batch
 from utils import (
+    ReverseOrderedEnum,
     keys_dict,
     parse_date,
     select_one_from_response,
@@ -127,7 +128,7 @@ class Sector(StrEnum):
         }.get(v, v)
 
 
-class Grade(StrEnum):
+class Grade(ReverseOrderedEnum, StrEnum):
     AAA = "AAA"
     AA_PLUS = "AA+"
     AA = "AA"
