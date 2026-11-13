@@ -4,7 +4,6 @@ from functools import cached_property
 
 from pydantic import (
     BaseModel,
-    ConfigDict,
     FieldSerializationInfo,
     computed_field,
     field_serializer,
@@ -34,8 +33,6 @@ class Ticker(BaseModel):
     quote: Decimal
     prediction: Prediction
     prediction_date: date
-
-    model_config = ConfigDict(use_enum_values=True)
 
     @field_serializer("coupon", "quote", mode="plain")
     @classmethod
