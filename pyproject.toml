@@ -15,6 +15,7 @@ dependencies = [
   "httpxyz",
   "humanize",
   "lxml",
+  "ordered-enum",
   "pydantic",
   "python-dateutil",
   "pytz",

@@ -594,6 +594,7 @@ dependencies = [
     { name = "httpxyz" },
     { name = "humanize" },
     { name = "lxml" },
+    { name = "ordered-enum" },
     { name = "pydantic" },
     { name = "python-dateutil" },
     { name = "pytz" },
@@ -626,6 +627,7 @@ requires-dist = [
     { name = "httpxyz" },
     { name = "humanize" },
     { name = "lxml" },
+    { name = "ordered-enum", specifier = ">=0.0.10" },
     { name = "pydantic" },
     { name = "python-dateutil" },
     { name = "pytz" },
@@ -967,6 +969,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/19/14/cf3a6b6448849656e1e5f4e2101f3988dc6789724050096aba1bc5ccf592/opentelemetry_api-1.45.2.tar.gz", hash = "sha256:d7b0008e21e5fd61cbe7a7f34ca3b6905a78ab677d9bc395e299359c75cda6b4", size = 73277, upload-time = "2026-10-29T17:29:37.888Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/a9/2d/610db864d7513158cebb8f36cc88e67e73bd6c7aa1905ef18d89e1281c81/opentelemetry_api-1.45.2-py3-none-any.whl", hash = "sha256:2cbd737377e710ee740d261c94e93fa0f08e6d037c18f17513cc0a2d94479a34", size = 60335, upload-time = "2026-10-29T17:29:06.955Z" },
+]
+
+[[package]]
+name = "ordered-enum"
+version = "0.0.10"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/34/20/8d165f16c2ef9d5bc945571898a0c99d3755bc401a1c57517318ba43a58f/ordered_enum-0.0.10.tar.gz", hash = "sha256:6979a367a7f252353eef4d5cd4c3c00c2178a421b52cc5f7cb2ee0d412d7f05b", size = 2772, upload-time = "2025-06-23T16:29:15.472Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/6c/31/55f391e6039353ccb97072ab990f21bde06676d1df295310cca51141d510/ordered_enum-0.0.10-py3-none-any.whl", hash = "sha256:f398723003f43bc19ef0e308f687149814a9889e7b81dd1947c556daa94d547e", size = 3570, upload-time = "2025-06-23T16:29:13.938Z" },
 ]
 
 [[package]]
