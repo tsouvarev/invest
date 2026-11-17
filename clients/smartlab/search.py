@@ -11,18 +11,22 @@ CONFIG = {
     "corporate": {
         "url": "https://smart-lab.ru/q/bonds/order_by_year_yield/desc/page{}/",
         "pagination": True,
+        "use_filters": True,
     },
     "federal": {
         "url": "https://smart-lab.ru/q/ofz/order_by_year_yield/desc/",
         "pagination": False,
+        "use_filters": False,
     },
     "subfederal": {
         "url": "https://smart-lab.ru/q/subfed/order_by_year_yield/desc/",
         "pagination": False,
+        "use_filters": False,
     },
     "other": {
         "url": "https://smart-lab.ru/q/other_bonds/order_by_year_yield/desc/",
         "pagination": False,
+        "use_filters": False,
     },
 }
 
@@ -45,7 +49,7 @@ async def search_isins(
     with_convertible: bool,
 ) -> list[str]:
     isins = []
-    params = {
+    default_params = {
         "paids_year": 12,
         "rating_gt": min_rating,
         "bonds_vdo": _to_smartlab_bool(with_vdo),
@@ -64,6 +68,7 @@ async def search_isins(
 
     for name, conf in CONFIG.items():
         with indicate_work(f"Getting {name} bonds"):
+            params = default_params if conf["use_filters"] else {}
             if conf["pagination"]:
                 for page in count(1):
                     response = await client.get(conf["url"].format(page), params=params)
