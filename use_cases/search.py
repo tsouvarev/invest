@@ -1,15 +1,18 @@
+from datetime import timedelta
 from math import ceil
 
 from funcy import group_by, walk_values
 from whatever import that
 
 from clients import search_isins
-from utils import now, print_table
+from utils import print_table, today
 
 from .base import Db, Prediction, Ticker
 from .blacklist import Blacklist, is_in_blacklist
 from .duplicates import get_canonical_name
 from .load import PredictionsUpdateMode, load_base_db, load_from_db
+
+EARLY_MATURITY_CUTOFF = timedelta(days=90)
 
 
 async def search_tickers(
@@ -108,13 +111,11 @@ def _drop_bad_predictions(db: Db) -> None:
 
 
 def _drop_too_little_profitable_months(db: Db, profitable_months: int) -> None:
-    today = now().date()
-
     for isin, ticker in list(db.items()):
         if ticker.quote < 95:
             continue
 
-        days_until_mature = (ticker.maturity_date - today).days
+        days_until_mature = (ticker.maturity_date - today()).days
         percents_per_day = ticker.coupon / 365
         days_until_profitable = ceil((ticker.quote - 100) / percents_per_day)
 
@@ -164,14 +165,19 @@ async def _drop_worse_duplicates(
 
     for isin, ticker in list(new_tickers.items()):
         canonical = get_canonical_name(ticker._company)
-        coupon, maturity_date = current_coupons.get(canonical, (0, now()))
+        coupon, maturity_date = current_coupons.get(canonical, (0, today()))
 
         has_better_coupon = ticker.coupon > coupon
         has_same_coupon_but_better_maturity = (
             ticker.coupon == coupon and ticker.maturity_date > maturity_date
         )
+        current_ends_early = maturity_date - today() < EARLY_MATURITY_CUTOFF
 
-        if has_better_coupon or has_same_coupon_but_better_maturity:
+        if (
+            has_better_coupon
+            or has_same_coupon_but_better_maturity
+            or current_ends_early
+        ):
             continue
 
         del new_tickers[isin]
