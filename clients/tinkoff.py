@@ -78,8 +78,12 @@ def _parse_info_page(response) -> TinkoffInfo:
     if not response.is_success:
         return None
 
-    name = select_one_from_response(response, selectors["name"])
-    return TinkoffInfo(**_parse_name(name))
+    try:
+        name = select_one_from_response(response, selectors["name"])
+        return TinkoffInfo(**_parse_name(name))
+    except ValueError:
+        print(f"Can't parse ticker: {response.url}")
+        return None
 
 
 def _parse_name(name: str) -> ParsedName:

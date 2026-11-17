@@ -10,7 +10,7 @@ def select_one_from_response(response: Response, css_selector: str) -> str:
     try:
         node = nodes[0][0]
     except IndexError:
-        return "-"
+        raise ValueError(css_selector)
 
     return get_text_from_node(node)
 
