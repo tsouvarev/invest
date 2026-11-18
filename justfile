@@ -35,7 +35,7 @@ draw *args:
     {{ RUN_INVEST }} bonds draw {{ args }}
 
 dupes *args:
-    {{ RUN_INVEST }} duplicates {{ args }}
+    {{ RUN_INVEST }} duplicates find {{ args }}
 
 ratings *args:
     {{ RUN_INVEST }} bonds ratings {{ args }}
