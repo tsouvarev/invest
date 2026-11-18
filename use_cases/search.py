@@ -1,18 +1,20 @@
-from datetime import timedelta
 from math import ceil
 
 from funcy import group_by, walk_values
+from isodate import parse_duration
 from whatever import that
 
 from clients import search_isins
-from utils import print_table, today
+from utils import get_env, print_table, today
 
 from .base import Db, Prediction, Ticker
 from .blacklist import Blacklist, is_in_blacklist
 from .duplicates import get_canonical_name
 from .load import PredictionsUpdateMode, load_base_db, load_from_db
 
-EARLY_MATURITY_CUTOFF = timedelta(days=90)
+EARLY_MATURITY_CUTOFF = get_env(
+    "EARLY_MATURITY_CUTOFF", cast_to=parse_duration, default="P90D"
+)
 
 
 async def search_tickers(

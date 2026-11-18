@@ -1,7 +1,8 @@
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 from decimal import Decimal
 from functools import cached_property
 
+from isodate import parse_duration
 from pydantic import (
     BaseModel,
     FieldSerializationInfo,
@@ -10,10 +11,12 @@ from pydantic import (
 )
 
 from clients import BondType, Grade, Prediction, Sector
-from utils import localize_date, localize_digits, localize_percents, now
+from utils import get_env, localize_date, localize_digits, localize_percents, now
 
-OUTDATED_PREDICTION_CUTOFF = timedelta(days=200)
-OUTDATED_CUTOFF = timedelta(hours=2)
+OUTDATED_PREDICTION_CUTOFF = get_env(
+    "OUTDATED_PREDICTION_CUTOFF", cast_to=parse_duration, default="P100D"
+)
+OUTDATED_CUTOFF = get_env("OUTDATED_CUTOFF", cast_to=parse_duration, default="PT2H")
 
 type Db = dict[str, Ticker | None]
 type Value = (
