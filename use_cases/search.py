@@ -158,7 +158,7 @@ async def _drop_worse_duplicates(
         update_predictions=PredictionsUpdateMode.SKIP,
     )
 
-    current_coupons = walk_values(
+    max_coupons = walk_values(
         lambda tickers: max((t.coupon, t.maturity_date) for t in tickers),
         group_by(
             lambda t: get_canonical_name(t._company), conflicted_used_tickers.values()
@@ -167,18 +167,21 @@ async def _drop_worse_duplicates(
 
     for isin, ticker in list(new_tickers.items()):
         canonical = get_canonical_name(ticker._company)
-        coupon, maturity_date = current_coupons.get(canonical, (0, today()))
+        max_coupon, max_coupon_maturity_date = max_coupons.get(canonical, (0, today()))
 
-        has_better_coupon = ticker.coupon > coupon
+        has_better_coupon = ticker.coupon > max_coupon
         has_same_coupon_but_better_maturity = (
-            ticker.coupon == coupon and ticker.maturity_date > maturity_date
+            ticker.coupon == max_coupon
+            and ticker.maturity_date > max_coupon_maturity_date
         )
-        current_ends_early = maturity_date - today() < EARLY_MATURITY_CUTOFF
+        better_coupon_ends_early = (
+            max_coupon_maturity_date - today() < EARLY_MATURITY_CUTOFF
+        )
 
         if (
             has_better_coupon
             or has_same_coupon_but_better_maturity
-            or current_ends_early
+            or better_coupon_ends_early
         ):
             continue
 
