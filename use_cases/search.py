@@ -100,8 +100,8 @@ async def search_tickers(
 
     if show_better_duplicates:
         await _drop_worse_duplicates(client, new_tickers, used_isins)
-    else:
-        _drop_used(new_tickers, used_isins)
+
+    _drop_used(new_tickers, used_isins)
 
     return sorted(new_tickers.values(), key=that.coupon, reverse=True)
 
