@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from funcy import group_by, lcat, lmap, memoize
-from httpxyz import AsyncClient
+from httpx2 import AsyncClient
 from humanize import naturaldate
 from pydantic import BaseModel, Field, FieldSerializationInfo, field_serializer
 

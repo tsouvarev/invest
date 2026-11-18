@@ -5,7 +5,7 @@ from enum import StrEnum, auto
 
 from asyncstdlib import zip as azip
 from funcy import curry, lsplit
-from httpxyz import AsyncClient
+from httpx2 import AsyncClient
 from pydantic import BaseModel, ConfigDict, field_validator
 
 from clients.web import Request, get_batch

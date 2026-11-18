@@ -1,4 +1,4 @@
-from httpxyz import Response
+from httpx2 import Response
 from lxml import etree
 
 parser = etree.XMLParser(recover=True)

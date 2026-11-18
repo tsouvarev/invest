@@ -12,7 +12,7 @@ dependencies = [
   "google-auth-httplib2",
   "google-auth-oauthlib",
   "httpx-retries",
-  "httpxyz",
+  "httpx2",
   "humanize",
   "isodate",
   "lxml",

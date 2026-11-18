@@ -2,7 +2,7 @@ from collections.abc import Iterator
 from itertools import count
 from typing import Any
 
-from httpxyz import AsyncClient
+from httpx2 import AsyncClient
 
 from utils import indicate_work, select_many_from_response
 

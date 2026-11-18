@@ -4,7 +4,7 @@ from enum import StrEnum, auto
 from functools import wraps
 
 from funcy import remove
-from httpxyz import AsyncClient
+from httpx2 import AsyncClient
 from humanize import naturaldate
 from pydantic import (
     BaseModel,

@@ -1,5 +1,5 @@
 from funcy import compact, project
-from httpxyz import AsyncClient
+from httpx2 import AsyncClient
 
 from clients import (
     InnsUpdateMode,

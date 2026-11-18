@@ -1,4 +1,4 @@
-from httpxyz import AsyncClient
+from httpx2 import AsyncClient
 
 from utils import print_obj
 

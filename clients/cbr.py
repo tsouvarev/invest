@@ -4,7 +4,7 @@ from itertools import count
 from typing import Annotated
 
 from funcy import curry, lsplit
-from httpxyz import AsyncClient
+from httpx2 import AsyncClient
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from tqdm import tqdm
 from whatever import that

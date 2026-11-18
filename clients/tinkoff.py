@@ -4,7 +4,7 @@ from typing import TypedDict
 
 from asyncstdlib import zip as azip
 from funcy import lsplit
-from httpxyz import AsyncClient
+from httpx2 import AsyncClient
 from pydantic import BaseModel, ConfigDict, computed_field
 
 from utils import (
